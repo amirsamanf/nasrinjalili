@@ -1,6 +1,6 @@
 import {
   unlockVault, seal, open, sealJSON, openJSON, toB64, fromB64, randomId,
-} from "./lapis-crypto.js";
+} from "./vault-crypto.js";
 
 /* ====================================================================== */
 /* constants                                                               */
@@ -120,14 +120,14 @@ const T = {
     claudeBody: "Claude can't log in here. To share new answers and files, export an encrypted copy and tell Claude. Claude sends changes back as an update file.",
     exportBtn: "Export for Claude", importBtn: "Import update from Claude",
     exporting: "Preparing export ({n} of {total})…", exported: "Export downloaded. Tell Claude: \"I exported the case.\"",
-    imported: "Update from Claude applied", importBad: "That file isn't a Lapis file for this vault.",
+    imported: "Update from Claude applied", importBad: "That file doesn't belong to this vault.",
     vaultTitle: "This vault",
     vaultMode: "Storage", vaultModeLocal: "This browser (test mode)", forget: "Forget this device", forgotten: "This device will ask for the storage token next time.",
     idleLocked: "Locked after 20 minutes without activity.",
     // setup
     setupTitle: "Connect private storage",
     setupLede: "One-time setup. The site stores everything, encrypted, in a private GitHub repository.",
-    setupRepo: "Private repository", setupRepoHint: "owner/name of the PRIVATE repo, e.g. jane/lapis-vault",
+    setupRepo: "Private repository", setupRepoHint: "owner/name of the PRIVATE repo, e.g. amirsamanf/nasrinjalili-vault",
     setupSite: "This site's repository", setupSiteHint: "owner/name of the PUBLIC repo that hosts this page",
     setupToken: "Access token", setupTokenHint: "Fine-grained token with Contents: Read and write on both repositories.",
     makeToken: "Create a token on GitHub",
@@ -138,8 +138,8 @@ const T = {
     setupNotToken: "That isn't a GitHub token. Tokens start with github_pat_ (what's in the box is {n} characters). Clear the box and paste the token again.",
     setupRepoBad: "Write repositories as owner/name, for example amirsamanf/nasrinjalili-vault.",
     seedTitle: "Load the starter file",
-    seedLede: "Choose vault-seed.lapis from the computer. It holds everything gathered so far, already encrypted.",
-    seedChoose: "Choose vault-seed.lapis", seedLoading: "Uploading {n} of {total}…",
+    seedLede: "Choose vault-seed.nasrin from the computer. It holds everything gathered so far, already encrypted.",
+    seedChoose: "Choose vault-seed.nasrin", seedLoading: "Uploading {n} of {total}…",
     seedDone: "All set. Opening the vault…",
     connected: "Connected to {repo}",
   },
@@ -230,7 +230,7 @@ const T = {
     idleLocked: "پس از ۲۰ دقیقه بی‌فعالیتی قفل شد.",
     setupTitle: "اتصال به محل ذخیره خصوصی",
     setupLede: "راه‌اندازی یک‌باره. همه‌چیز رمزگذاری‌شده در یک مخزن خصوصی گیت‌هاب ذخیره می‌شود.",
-    setupRepo: "مخزن خصوصی", setupRepoHint: "نام مخزن خصوصی، مثلاً jane/lapis-vault",
+    setupRepo: "مخزن خصوصی", setupRepoHint: "نام مخزن خصوصی، مثلاً amirsamanf/nasrinjalili-vault",
     setupSite: "مخزن این سایت", setupSiteHint: "نام مخزن عمومی که این صفحه را میزبانی می‌کند",
     setupToken: "توکن دسترسی", setupTokenHint: "توکن fine-grained با دسترسی Contents: Read and write به هر دو مخزن.",
     makeToken: "ساخت توکن در گیت‌هاب",
@@ -241,14 +241,14 @@ const T = {
     setupNotToken: "این توکن گیت‌هاب نیست. توکن با github_pat_ شروع می‌شود (محتوای کادر {n} نویسه است). کادر را خالی کنید و دوباره بچسبانید.",
     setupRepoBad: "نام مخزن را به شکل owner/name بنویسید، مثلاً amirsamanf/nasrinjalili-vault.",
     seedTitle: "بارگذاری فایل آغازین",
-    seedLede: "فایل vault-seed.lapis را از رایانه انتخاب کنید.",
-    seedChoose: "انتخاب vault-seed.lapis", seedLoading: "در حال بارگذاری {n} از {total}…",
+    seedLede: "فایل vault-seed.nasrin را از رایانه انتخاب کنید.",
+    seedChoose: "انتخاب vault-seed.nasrin", seedLoading: "در حال بارگذاری {n} از {total}…",
     seedDone: "انجام شد. در حال باز کردن…",
     connected: "متصل به {repo}",
   },
 };
 
-let LANG = store.get("lapis.lang") === "fa" ? "fa" : "en";
+let LANG = store.get("nasrin.lang") === "fa" ? "fa" : "en";
 // Fills {tokens} from the decrypted case (never from this public file).
 function fill(s) {
   if (!S?.data || typeof s !== "string" || !s.includes("{")) return s;
@@ -515,7 +515,7 @@ const SLOTS = [
 const S = {
   vault: null, key: null, store: null, mode: IS_LOCAL ? "local" : "github", secretRepo: "",
   data: null, sha: null, pending: [], saving: false, saveState: "saved",
-  tab: store.get("lapis.tab") || "overview", group: "husband",
+  tab: store.get("nasrin.tab") || "overview", group: "husband",
   thumbs: new Map(), armed: null, jalOpen: null, intro: true,
 };
 
@@ -580,7 +580,7 @@ class LocalStore {
   async db() {
     if (this._db) return this._db;
     this._db = await new Promise((res, rej) => {
-      const r = indexedDB.open("lapis-test", 1);
+      const r = indexedDB.open("nasrin-test", 1);
       r.onupgradeneeded = () => r.result.createObjectStore("kv");
       r.onsuccess = () => res(r.result);
       r.onerror = () => rej(r.error);
@@ -641,14 +641,14 @@ async function doUnlock(user, pass) {
   if (IS_LOCAL) {
     S.store = new LocalStore();
   } else {
-    let sealed = S.vault.secret || store.get("lapis.secret");
+    let sealed = S.vault.secret || store.get("nasrin.secret");
     if (!sealed) {
       const fresh = await freshVaultFromApi();
       if (fresh?.secret) { S.vault = fresh; sealed = fresh.secret; }
     }
     if (!sealed) return renderSetup();
     const secret = await openJSON(S.key, fromB64(sealed));
-    store.set("lapis.secret", sealed);
+    store.set("nasrin.secret", sealed);
     S.store = new GitHubStore(secret);
     S.secretRepo = secret.repo;
   }
@@ -838,20 +838,20 @@ function applyLang() {
   document.documentElement.dir = LANG === "fa" ? "rtl" : "ltr";
 }
 function applyTheme() {
-  const th = store.get("lapis.theme");
+  const th = store.get("nasrin.theme");
   if (th === "dark" || th === "light") document.documentElement.dataset.theme = th;
   else delete document.documentElement.dataset.theme;
 }
 const app = () => $("#app");
 
 function renderLock(msg = "") {
-  document.title = "Lapis";
+  document.title = "Nasrin";
   app().innerHTML = `
   <div class="gate">
     <form class="card gate-card" id="lock-form" autocomplete="on">
       <div class="gate-top"><span class="eyebrow">${esc(t("vaultSub"))}</span>${langSeg()}</div>
       ${logoHTML()}
-      <h1 class="display">Lapis</h1>
+      <h1 class="display">Nasrin</h1>
       <p class="sub">${esc(t("unlockSub"))}</p>
       ${IS_LOCAL ? `<p class="okmsg small">${esc(t("local"))}</p>` : ""}
       <div class="stack">
@@ -888,10 +888,10 @@ function renderSetup(step = 1, msg = "") {
     <p class="muted">${esc(t("setupLede"))}</p>
     <form class="stack" id="setup-form">
       <div class="field"><label for="sr">${esc(t("setupRepo"))}</label>
-        <input class="input mono" id="sr" required placeholder="owner/lapis-vault" autocomplete="off" autocapitalize="none" spellcheck="false">
+        <input class="input mono" id="sr" required placeholder="owner/nasrinjalili-vault" autocomplete="off" autocapitalize="none" spellcheck="false">
         <span class="hint">${esc(t("setupRepoHint"))}</span></div>
       <div class="field"><label for="ss">${esc(t("setupSite"))}</label>
-        <input class="input mono" id="ss" required value="${esc(siteRepo)}" placeholder="owner/lapis" autocomplete="off" autocapitalize="none" spellcheck="false">
+        <input class="input mono" id="ss" required value="${esc(siteRepo)}" placeholder="owner/nasrinjalili" autocomplete="off" autocapitalize="none" spellcheck="false">
         <span class="hint">${esc(t("setupSiteHint"))}</span></div>
       <div class="field"><label for="tk">${esc(t("setupToken"))}</label>
         <input class="input mono masked" id="tk" type="text" name="gh-token" required autocomplete="off" data-lpignore="true" data-1p-ignore="true" spellcheck="false" autocapitalize="none" placeholder="github_pat_…">
@@ -903,12 +903,12 @@ function renderSetup(step = 1, msg = "") {
     <p class="muted">${esc(t("seedLede"))}</p>
     ${S.secretRepo ? `<p class="okmsg">${esc(t("connected", { repo: S.secretRepo }))}</p>` : ""}
     <label class="drop" id="seed-drop" for="seed-file">${ic("upload", 'style="width:28px;height:28px"')}<br><b>${esc(t("seedChoose"))}</b></label>
-    <input type="file" id="seed-file" accept=".lapis" hidden>
+    <input type="file" id="seed-file" accept=".nasrin,.lapis" hidden>
     <div class="progress" id="seed-prog" hidden><i></i></div>
     <p id="seed-msg" class="small muted" aria-live="polite"></p>
     ${msg ? `<div class="err" role="alert">${esc(msg)}</div>` : ""}`;
   app().innerHTML = `<div class="gate"><div class="card gate-card wide">
-    <div class="gate-top"><span class="eyebrow">Lapis</span>${langSeg()}</div>
+    <div class="gate-top"><span class="eyebrow">Nasrin</span>${langSeg()}</div>
     <div class="steps-mini"><span class="on"></span><span class="${step === 2 ? "on" : ""}"></span></div>
     ${body}
     <div class="gate-foot">${ic("shield")}<span>${esc(t("gateFoot"))}</span></div></div></div>`;
@@ -938,10 +938,10 @@ function renderSetup(step = 1, msg = "") {
     drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
     drop.addEventListener("dragleave", () => drop.classList.remove("over"));
     drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); const f = e.dataTransfer.files[0]; if (f) importSeedFile(f); });
-    // Local test server only: ?seed=/test-seed.lapis loads the starter file without a file picker.
+    // Local test server only: ?seed=/test-seed.nasrin loads the starter file without a file picker.
     const seedUrl = IS_LOCAL && new URLSearchParams(location.search).get("seed");
     if (seedUrl && seedUrl.startsWith("/")) {
-      fetch(seedUrl, { cache: "no-store" }).then((r) => r.arrayBuffer()).then((b) => importSeedFile(new File([b], "seed.lapis")));
+      fetch(seedUrl, { cache: "no-store" }).then((r) => r.arrayBuffer()).then((b) => importSeedFile(new File([b], "seed.nasrin")));
     }
   }
 }
@@ -970,7 +970,7 @@ async function connectStorage({ repo, site, token }) {
   });
   if (!put.ok) throw new Error(t("setupNoAccess", { repo: site }));
   S.vault = next;
-  store.set("lapis.secret", sealed);
+  store.set("nasrin.secret", sealed);
   S.store = new GitHubStore(secret);
   S.secretRepo = repo;
   const existing = await S.store.readCase();
@@ -988,7 +988,7 @@ async function importSeedFile(file) {
   const msg = $("#seed-msg"), prog = $("#seed-prog");
   try {
     const bundle = await openJSON(S.key, new Uint8Array(await file.arrayBuffer()));
-    if (bundle.kind !== "lapis-bundle" || !bundle.case) throw new Error(t("importBad"));
+    if (!/^(nasrin|lapis)-bundle$/.test(bundle.kind) || !bundle.case) throw new Error(t("importBad"));
     prog.hidden = false;
     const total = bundle.files.length;
     const meta = Object.fromEntries(bundle.case.files.map((f) => [f.id, f]));
@@ -1014,7 +1014,7 @@ async function importSeedFile(file) {
     msg.textContent = "";
     prog.hidden = true;
     const m = $("#seed-msg");
-    m.innerHTML = `<span class="err" role="alert">${esc(/operation|decrypt|lapis/i.test(String(err.message)) ? t("importBad") : err.message)}</span>`;
+    m.innerHTML = `<span class="err" role="alert">${esc(/operation|decrypt|vault-file/i.test(String(err.message)) ? t("importBad") : err.message)}</span>`;
   }
 }
 
@@ -1023,7 +1023,7 @@ async function importSeedFile(file) {
 /* ====================================================================== */
 function startApp() {
   const gn = S.data.profile?.givenName || "";
-  document.title = gn ? `${gn.charAt(0)}${gn.slice(1).toLowerCase()} · Lapis` : "Lapis";
+  document.title = gn ? `${gn.charAt(0)}${gn.slice(1).toLowerCase()} · Work permit` : "Nasrin";
   app().innerHTML = `
     ${IS_LOCAL ? `<div class="test-banner">${esc(t("local"))}</div>` : ""}
     <header class="topbar"><div class="topbar-in" id="topbar"></div></header>
@@ -1062,7 +1062,7 @@ function renderTop() {
   const p = S.data.profile;
   const th = document.documentElement.dataset.theme;
   el.innerHTML = `
-    <a class="brand" href="#" data-action="tab" data-tab="overview" aria-label="Lapis">${logoHTML()}<span>Lapis</span></a>
+    <a class="brand" href="#" data-action="tab" data-tab="overview" aria-label="Nasrin">${logoHTML()}<span>Nasrin</span></a>
     <div class="case-name"><b>${esc(p.givenName.charAt(0) + p.givenName.slice(1).toLowerCase())} ${esc(p.familyName.charAt(0) + p.familyName.slice(1).toLowerCase())}</b> · ${esc(t("caseTitle"))}</div>
     <div class="spacer"></div>
     <span class="chip ${cls} save-chip" title="${esc(t(st))}"><span class="txt">${esc(t(st))}</span></span>
@@ -1413,7 +1413,7 @@ function submitHTML() {
         <div class="stack" style="gap:10px">
           <button class="btn accent" data-action="export">${ic("download")}${esc(t("exportBtn"))}</button>
           <button class="btn" data-action="import">${ic("upload")}${esc(t("importBtn"))}</button>
-          <input type="file" hidden id="import-file" accept=".lapis">
+          <input type="file" hidden id="import-file" accept=".nasrin,.lapis">
         </div></div>
       <div class="card box"><h3 class="display">${esc(t("vaultTitle"))}</h3>
         <p class="small"><span class="muted">${esc(t("vaultMode"))}:</span> <span class="mono">${esc(IS_LOCAL ? t("vaultModeLocal") : S.secretRepo || S.store?.repo || "")}</span></p>
@@ -1642,11 +1642,11 @@ async function exportForClaude() {
       const bytes = await open(S.key, await S.store.readFile(files[i].id));
       out.push({ id: files[i].id, b64: toB64(bytes) });
     }
-    const bundle = { kind: "lapis-bundle", type: "export", v: 1, createdAt: nowISO(), case: S.data, files: out };
+    const bundle = { kind: "nasrin-bundle", type: "export", v: 1, createdAt: nowISO(), case: S.data, files: out };
     const sealed = await sealJSON(S.key, bundle);
     const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
     const u = URL.createObjectURL(new Blob([sealed], { type: "application/octet-stream" }));
-    saveAs(u, `lapis-export-${stamp}.lapis`);
+    saveAs(u, `nasrin-export-${stamp}.nasrin`);
     setTimeout(() => URL.revokeObjectURL(u), 30000);
     mutate((d) => d.notes.forEach((n) => { if (n.by !== "claude") n.exported = true; }), { log: "Exported the case for Claude", render: false });
     tt.done(t("exported"));
@@ -1659,7 +1659,7 @@ async function importFromClaude(file) {
   try {
     let bundle;
     try { bundle = await openJSON(S.key, new Uint8Array(await file.arrayBuffer())); } catch { throw new Error(t("importBad")); }
-    if (bundle.kind !== "lapis-bundle") throw new Error(t("importBad"));
+    if (!/^(nasrin|lapis)-bundle$/.test(bundle.kind)) throw new Error(t("importBad"));
     const shas = {};
     for (let i = 0; i < (bundle.files || []).length; i++) {
       const f = bundle.files[i];
@@ -1708,12 +1708,12 @@ function setAnswer(id, value, st, opts) {
 }
 const actions = {
   lang(el) {
-    LANG = el.dataset.lang; store.set("lapis.lang", LANG); applyLang();
+    LANG = el.dataset.lang; store.set("nasrin.lang", LANG); applyLang();
     if (S.data) renderMain(); else if ($("#lock-form")) renderLock(); else renderSetup($("#seed-file") ? 2 : 1);
   },
   theme() {
     const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    store.set("lapis.theme", cur === "dark" ? "light" : "dark"); applyTheme(); renderTop();
+    store.set("nasrin.theme", cur === "dark" ? "light" : "dark"); applyTheme(); renderTop();
   },
   "pw-toggle"(el) {
     const p = $("#p");
@@ -1721,11 +1721,11 @@ const actions = {
     el.textContent = p.type === "password" ? t("show") : t("hide");
   },
   lock() { lockNow(); },
-  forget() { store.set("lapis.secret", null); toast(t("forgotten")); },
-  tab(el, ev) { ev.preventDefault(); S.tab = el.dataset.tab; store.set("lapis.tab", S.tab); renderTabs(); renderPanel(); window.scrollTo({ top: 0, behavior: "smooth" }); },
+  forget() { store.set("nasrin.secret", null); toast(t("forgotten")); },
+  tab(el, ev) { ev.preventDefault(); S.tab = el.dataset.tab; store.set("nasrin.tab", S.tab); renderTabs(); renderPanel(); window.scrollTo({ top: 0, behavior: "smooth" }); },
   goto(el) {
     S.tab = el.dataset.tab; if (el.dataset.group) S.group = el.dataset.group;
-    store.set("lapis.tab", S.tab); renderTabs(); renderPanel(); window.scrollTo({ top: 0, behavior: "smooth" });
+    store.set("nasrin.tab", S.tab); renderTabs(); renderPanel(); window.scrollTo({ top: 0, behavior: "smooth" });
   },
   step(el) {
     const s = steps()[Number(el.dataset.step)];
@@ -1890,7 +1890,7 @@ function armIdle() {
 async function lockNow(msg) {
   if (S.pending.length) { try { await saveNow(); } catch { /* best effort */ } }
   for (const u of S.thumbs.values()) if (typeof u === "string") URL.revokeObjectURL(u);
-  if (msg) sessionStorage.setItem("lapis.msg", msg);
+  if (msg) sessionStorage.setItem("nasrin.msg", msg);
   location.reload();
 }
 // refresh from storage when returning to the tab (another device may have changed things)
@@ -1912,10 +1912,10 @@ setInterval(() => { if (S.data) renderSeal(); }, 60 * 60 * 1000);
   try {
     S.vault = await loadVault();
   } catch {
-    app().innerHTML = `<div class="gate"><div class="card gate-card"><h1 class="display">Lapis</h1><p class="sub">${esc(t("noVault"))}</p></div></div>`;
+    app().innerHTML = `<div class="gate"><div class="card gate-card"><h1 class="display">Nasrin</h1><p class="sub">${esc(t("noVault"))}</p></div></div>`;
     return;
   }
   let msg = "";
-  try { msg = sessionStorage.getItem("lapis.msg") || ""; sessionStorage.removeItem("lapis.msg"); } catch { /* ignore */ }
+  try { msg = sessionStorage.getItem("nasrin.msg") || ""; sessionStorage.removeItem("nasrin.msg"); } catch { /* ignore */ }
   renderLock(msg);
 })();

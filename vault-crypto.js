@@ -1,4 +1,4 @@
-// Lapis vault crypto — shared by the web app (browser) and tools/vault.mjs (Node 20+).
+// Vault crypto — shared by the web app (browser) and tools/vault.mjs (Node 20+).
 // Everything that leaves the device is AES-256-GCM ciphertext. The key is derived
 // from username + password with PBKDF2-SHA256 and never stored anywhere.
 
@@ -60,7 +60,7 @@ export async function seal(key, bytes) {
 export async function open(key, sealed) {
   const u8 = sealed instanceof Uint8Array ? sealed : new Uint8Array(sealed);
   for (let i = 0; i < 4; i++) {
-    if (u8[i] !== MAGIC[i]) throw new Error("not-a-lapis-file");
+    if (u8[i] !== MAGIC[i]) throw new Error("not-a-vault-file");
   }
   const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: u8.subarray(4, 16) }, key, u8.subarray(16));
   return new Uint8Array(pt);
@@ -74,6 +74,7 @@ export async function openJSON(key, sealed) {
   return JSON.parse(td.decode(await open(key, sealed)));
 }
 
+// Fixed value sealed inside vault.json at creation. Changing it would lock out the existing vault.
 export const CHECK_TEXT = "lapis-vault-ok";
 
 // vault.json lives in the public site. It holds only the KDF salt, a check value
