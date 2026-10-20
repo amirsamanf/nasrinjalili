@@ -134,7 +134,9 @@ const T = {
     setupGo: "Connect", setupChecking: "Checking access…",
     setupNotPrivate: "That repository is public. Make it private on GitHub first, then connect again.",
     setupNoAccess: "The token can't reach {repo}. Make sure it includes that repository with Contents: Read and write.",
-    setupBadToken: "GitHub refused the token. Copy the whole token and try again.",
+    setupBadToken: "GitHub refused the token. Generate a new one, copy it with the copy button next to it, and paste it into an empty box. A fine-grained token is 93 characters",
+    setupNotToken: "That isn't a GitHub token. Tokens start with github_pat_ (what's in the box is {n} characters). Clear the box and paste the token again.",
+    setupRepoBad: "Write repositories as owner/name, for example amirsamanf/nasrinjalili-vault.",
     seedTitle: "Load the starter file",
     seedLede: "Choose vault-seed.lapis from the computer. It holds everything gathered so far, already encrypted.",
     seedChoose: "Choose vault-seed.lapis", seedLoading: "Uploading {n} of {total}…",
@@ -235,7 +237,9 @@ const T = {
     setupGo: "اتصال", setupChecking: "در حال بررسی دسترسی…",
     setupNotPrivate: "این مخزن عمومی است. ابتدا آن را خصوصی کنید.",
     setupNoAccess: "توکن به {repo} دسترسی ندارد.",
-    setupBadToken: "گیت‌هاب توکن را نپذیرفت. کل توکن را کپی کنید.",
+    setupBadToken: "گیت‌هاب توکن را نپذیرفت. یک توکن تازه بسازید، با دکمه کپی کنار آن کپی کنید و در کادر خالی بچسبانید. توکن ۹۳ نویسه دارد",
+    setupNotToken: "این توکن گیت‌هاب نیست. توکن با github_pat_ شروع می‌شود (محتوای کادر {n} نویسه است). کادر را خالی کنید و دوباره بچسبانید.",
+    setupRepoBad: "نام مخزن را به شکل owner/name بنویسید، مثلاً amirsamanf/nasrinjalili-vault.",
     seedTitle: "بارگذاری فایل آغازین",
     seedLede: "فایل vault-seed.lapis را از رایانه انتخاب کنید.",
     seedChoose: "انتخاب vault-seed.lapis", seedLoading: "در حال بارگذاری {n} از {total}…",
@@ -884,13 +888,13 @@ function renderSetup(step = 1, msg = "") {
     <p class="muted">${esc(t("setupLede"))}</p>
     <form class="stack" id="setup-form">
       <div class="field"><label for="sr">${esc(t("setupRepo"))}</label>
-        <input class="input mono" id="sr" required placeholder="owner/lapis-vault" pattern="[\\w.-]+/[\\w.-]+" autocapitalize="none" spellcheck="false">
+        <input class="input mono" id="sr" required placeholder="owner/lapis-vault" autocomplete="off" autocapitalize="none" spellcheck="false">
         <span class="hint">${esc(t("setupRepoHint"))}</span></div>
       <div class="field"><label for="ss">${esc(t("setupSite"))}</label>
-        <input class="input mono" id="ss" required value="${esc(siteRepo)}" placeholder="owner/lapis" pattern="[\\w.-]+/[\\w.-]+" autocapitalize="none" spellcheck="false">
+        <input class="input mono" id="ss" required value="${esc(siteRepo)}" placeholder="owner/lapis" autocomplete="off" autocapitalize="none" spellcheck="false">
         <span class="hint">${esc(t("setupSiteHint"))}</span></div>
       <div class="field"><label for="tk">${esc(t("setupToken"))}</label>
-        <input class="input mono" id="tk" type="password" required autocomplete="off" spellcheck="false" placeholder="github_pat_…">
+        <input class="input mono masked" id="tk" type="text" name="gh-token" required autocomplete="off" data-lpignore="true" data-1p-ignore="true" spellcheck="false" autocapitalize="none" placeholder="github_pat_…">
         <span class="hint">${esc(t("setupTokenHint"))} <a href="${TOKEN_URL}" target="_blank" rel="noopener">${esc(t("makeToken"))}</a></span></div>
       ${msg ? `<div class="err" role="alert">${esc(msg)}</div>` : ""}
       <button class="btn primary" id="setup-go">${esc(t("setupGo"))}</button>
@@ -911,7 +915,14 @@ function renderSetup(step = 1, msg = "") {
   if (step === 1) {
     $("#setup-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const repo = $("#sr").value.trim(), site = $("#ss").value.trim(), token = $("#tk").value.trim();
+      const cleanRepo = (v) => v.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$/i, "").replace(/\/+$/, "");
+      const repo = cleanRepo($("#sr").value), site = cleanRepo($("#ss").value);
+      const raw = $("#tk").value.replace(/\s+/g, "");
+      // Pull the token out of whatever was pasted (an autofilled password in front of it, quotes, etc).
+      const token = (raw.match(/github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,}/) || [raw])[0];
+      const repoOk = (v) => /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v);
+      if (!repoOk(repo) || !repoOk(site)) return renderSetup(1, t("setupRepoBad"));
+      if (!/^(github_pat_|gh[pousr]_)/.test(token)) return renderSetup(1, t("setupNotToken", { n: token.length }));
       $("#setup-go").disabled = true;
       $("#setup-go").textContent = t("setupChecking");
       try {
@@ -938,7 +949,11 @@ function renderSetup(step = 1, msg = "") {
 async function connectStorage({ repo, site, token }) {
   const gh = (path, opts = {}) => fetch(`${API}${path}`, { cache: "no-store", ...opts, headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", ...(opts.headers || {}) } });
   const r = await gh(`/repos/${repo}`);
-  if (r.status === 401) throw new Error(t("setupBadToken"));
+  if (r.status === 401) {
+    let why = "";
+    try { why = (await r.json()).message || ""; } catch { /* no body */ }
+    throw new Error(t("setupBadToken") + ` (${token.length} ${LANG === "fa" ? "نویسه" : "characters"}${why ? " · GitHub: " + why : ""})`);
+  }
   if (!r.ok) throw new Error(t("setupNoAccess", { repo }));
   const info = await r.json();
   if (!info.private) throw new Error(t("setupNotPrivate"));

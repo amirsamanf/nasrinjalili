@@ -160,6 +160,7 @@ textarea.input { min-height: 110px; resize: vertical; line-height: 1.5; }
 .input:hover { border-color: var(--ink-3); }
 .input:focus { border-color: var(--accent); background: var(--surface); box-shadow: var(--focus); outline: none; }
 .input.mono { font-family: var(--font-mono); letter-spacing: .02em; }
+.input.masked { -webkit-text-security: disc; }
 .pw-wrap { position: relative; }
 .pw-wrap .input { padding-inline-end: 72px; }
 .pw-wrap .btn { position: absolute; inset-inline-end: 5px; top: 5px; min-height: 34px; }
@@ -436,6 +437,6 @@ textarea.input { min-height: 110px; resize: vertical; line-height: 1.5; }
 <div id="app" aria-live="polite"></div>
 <div id="toasts" role="status" aria-live="polite"></div>
 <noscript><p style="padding:24px">This page needs JavaScript to decrypt the vault.</p></noscript>
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=2"></script>
 </body>
 </html>
