@@ -45,6 +45,7 @@ const T = {
     saved: "Encrypted · saved", saving: "Saving…", offline: "Couldn't save · retrying", pending: "Saving soon…", local: "Test mode · this browser only",
     tabOverview: "Overview", tabGaps: "Fill the gaps", tabDocs: "Documents", tabNotes: "Notes & paste", tabSubmit: "Submit",
     daysLeft: "days left", submitBy: "Submit by", permitEnds: "Permit ends", deadline: "Deadline", progress: "Progress",
+    blankForm: "Empty IMM 5710", draftForm: "IMM 5710, filled so far", adobeHint: "Open in Adobe Reader. Browsers can't show this form.",
     caseTitle: "Open work permit extension",
     // steps
     s_eligible: "Eligibility confirmed", s_account: "IRCC account ready", s_checklist: "Checklist created", s_draft: "Form pre-filled",
@@ -155,6 +156,7 @@ const T = {
     saved: "رمزگذاری و ذخیره شد", saving: "در حال ذخیره…", offline: "ذخیره نشد · تلاش دوباره", pending: "به‌زودی ذخیره می‌شود…", local: "حالت آزمایشی · فقط این مرورگر",
     tabOverview: "خلاصه", tabGaps: "تکمیل اطلاعات", tabDocs: "مدارک", tabNotes: "یادداشت‌ها", tabSubmit: "ارسال",
     daysLeft: "روز مانده", submitBy: "ارسال تا", permitEnds: "پایان مجوز", deadline: "مهلت", progress: "پیشرفت",
+    blankForm: "فرم خالی IMM 5710", draftForm: "فرم IMM 5710، پرشده تا اینجا", adobeHint: "با Adobe Reader باز کنید. مرورگر این فرم را نشان نمی‌دهد.",
     caseTitle: "تمدید مجوز کار باز",
     s_eligible: "شرایط احراز شد", s_account: "حساب IRCC آماده", s_checklist: "فهرست مدارک ساخته شد", s_draft: "فرم پیش‌پر شد",
     s_answers: "پاسخ‌های باقی‌مانده", s_ids: "شماره‌های شناسایی", s_docs: "مدارک آماده", s_submit: "ارسال و پرداخت",
@@ -1077,11 +1079,17 @@ function renderSeal() {
   const doneN = list.filter((s) => s.done).length;
   const deadline = S.data.application?.deadline || S.data.profile.permit.expires;
   const dayBefore = new Date(Date.parse(deadline + "T12:00:00Z") - 864e5).toISOString().slice(0, 10);
+  const draft = filesIn("formDraft").slice(-1)[0];
   el.innerHTML = `
     <div class="cd">
       <div class="eyebrow">${esc(t("deadline"))}</div>
       <div class="cd-num"><b>${faDigits(daysLeft())}</b><span>${esc(t("daysLeft"))}</span></div>
       <div class="cd-when">${esc(t("submitBy"))} <b>${fmtDate(dayBefore)}</b><br>${esc(t("permitEnds"))} <span class="end">${fmtDate(deadline)}</span></div>
+      <div class="form-links">
+        <a class="btn sm" href="imm5710-blank.pdf" download="IMM5710-empty.pdf">${ic("download")}${esc(t("blankForm"))}</a>
+        ${draft ? `<button class="btn sm primary" data-action="download" data-id="${draft.id}">${ic("download")}${esc(t("draftForm"))}</button>` : ""}
+        <p class="small muted">${esc(t("adobeHint"))}</p>
+      </div>
     </div>
     <div class="rail-sep"></div>
     <div class="prog">
