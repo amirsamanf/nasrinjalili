@@ -207,6 +207,7 @@ const T = {
     notePh: "مثلاً: همسرم متولد ۱۳۳۸/۰۵/۱۲. ازدواج در تهران، ۱۳۶۴. ورود به ونکوور ۲۳ اسفند ۱۴۰۱…",
     saveNote: "ذخیره یادداشت", noteSaved: "یادداشت ذخیره شد", attach: "پیوست عکس",
     noNotes: "هنوز یادداشتی نیست.",
+    noteNoFa: "ترجمه فارسی این یادداشت هنوز آماده نیست.",
     fromYou: "از شما", fromClaudeNote: "از Claude", seen: "خوانده شد", unread: "جدید",
     pastedImage: "تصویر در «مدارک ← سایر» ذخیره شد",
     submitTitle: "ارسال",
@@ -1391,7 +1392,8 @@ function notesHTML() {
         <div class="meta"><b>${esc(n.by === "claude" ? t("fromClaudeNote") : t("fromYou"))}</b><span>${esc(fmtStamp(n.at))}</span>
           ${n.by !== "claude" ? `<span class="chip ${n.seenByClaude ? "ok" : "plain"}">${esc(n.seenByClaude ? t("seen") : t("unread"))}</span>` : ""}
           <span class="spacer"></span>${n.by !== "claude" ? `<button class="btn ghost sm danger" data-action="note-rm" data-id="${n.id}">${S.armed === "n" + n.id ? esc(t("confirmRemove")) : ic("trash")}</button>` : ""}</div>
-        <div class="body">${esc(n.text)}</div></article>`).join("") : `<p class="muted">${esc(t("noNotes"))}</p>`}</div>`;
+        <div class="body" dir="auto">${esc(LANG === "fa" && n.fa ? n.fa : n.text)}</div>
+        ${LANG === "fa" && !n.fa ? `<div class="small muted" style="margin-top:6px">${esc(t("noteNoFa"))}</div>` : ""}</article>`).join("") : `<p class="muted">${esc(t("noNotes"))}</p>`}</div>`;
 }
 
 /* ---------------- submit ---------------- */
