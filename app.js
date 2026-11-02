@@ -10,6 +10,7 @@ const API = "https://api.github.com";
 // No personal details live in this public file: every name, date and number
 // comes from the decrypted case data at runtime.
 const IDLE_MS = 20 * 60 * 1000;
+const IRCC_MAX = 4 * 1048576; // IRCC's upload limit per file
 const WORK_YEARS = 10;
 const IRCC_SIGNIN = "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/account.html";
 const IRAN_PAGE = "https://www.canada.ca/en/immigration-refugees-citizenship/services/iran.html";
@@ -93,7 +94,7 @@ const T = {
     photoChecks: "Photo check", pcSize: "At least 420 × 540 pixels", pcShape: "Portrait shape (35 × 45)", pcFile: "File under 4 MB", pcFace: "Face inside the dashed oval",
     photoSpecs: "IRCC photo rules",
     encrypting: "Encrypting {name}…", uploaded: "Saved {name}", uploadFail: "Couldn't save {name}: {why}",
-    badType: "only photos (JPG, PNG) or PDFs work here", tooBig: "file is larger than 15 MB", badImage: "this image format can't be read. Export it as JPG and try again",
+    badType: "only photos (JPG, PNG) or PDFs work here", badHeic: "this is an iPhone HEIC photo, which this browser can't read. Upload it from the iPhone, or use Safari on the Mac", pdfTooBig: "This PDF is {size}. IRCC accepts up to 4 MB per file, so it needs to be smaller before uploading there", badImage: "this image format can't be read. Export it as JPG and try again",
     // notes
     notesTitle: "Notes & paste",
     notesLede: "Paste or type anything Claude should know: dates, answers, text from emails, screenshots. Claude reads these the next time you export.",
@@ -200,7 +201,7 @@ const T = {
     photoChecks: "بررسی عکس", pcSize: "دست‌کم ۴۲۰ × ۵۴۰ پیکسل", pcShape: "عمودی (۳۵ × ۴۵)", pcFile: "کمتر از ۴ مگابایت", pcFace: "صورت داخل بیضی خط‌چین",
     photoSpecs: "قوانین عکس IRCC",
     encrypting: "در حال رمزگذاری {name}…", uploaded: "{name} ذخیره شد", uploadFail: "{name} ذخیره نشد: {why}",
-    badType: "فقط عکس (JPG، PNG) یا PDF", tooBig: "حجم فایل بیش از ۱۵ مگابایت است", badImage: "این قالب عکس خوانده نمی‌شود. آن را JPG کنید",
+    badType: "فقط عکس (JPG، PNG) یا PDF", badHeic: "این عکس HEIC آیفون است و این مرورگر آن را نمی‌خواند. از خود آیفون بارگذاری کنید یا در مک از Safari استفاده کنید", pdfTooBig: "حجم این PDF {size} است. IRCC برای هر فایل تا ۴ مگابایت می‌پذیرد، پس پیش از بارگذاری در آنجا باید کوچک‌تر شود", badImage: "این قالب عکس خوانده نمی‌شود. آن را JPG کنید",
     notesTitle: "یادداشت‌ها",
     notesLede: "هر چیزی که Claude باید بداند را بنویسید یا بچسبانید: تاریخ‌ها، پاسخ‌ها، متن ایمیل، تصویر صفحه. Claude آن‌ها را در خروجی بعدی می‌خواند.",
     pasteHint: "در هر جای سایت {key} را بزنید تا متن یا تصویر چسبانده شود.",
@@ -1538,14 +1539,16 @@ async function addFiles(slot, fileList) {
   for (const file of list) {
     const tt = toast(t("encrypting", { name: file.name }), { progress: true });
     try {
-      let blob = file, type = file.type || (/\.pdf$/i.test(file.name) ? "application/pdf" : ""), name = file.name || "pasted.png";
+      let blob = file, name = file.name || "pasted.png";
+      const heic = /\.(heic|heif)$/i.test(name) || /hei[cf]/i.test(file.type);
+      let type = file.type || (/\.pdf$/i.test(name) ? "application/pdf" : heic ? "image/heic" : "");
       if (!/^image\/|^application\/pdf$/.test(type)) throw new Error(t("badType"));
       let check = null;
       if (type.startsWith("image/")) {
         let j;
         try {
           j = slot === "photo" ? await toJpeg(blob, 3000, 0.92) : await toJpeg(blob, 2400, 0.86);
-        } catch { throw new Error(t("badImage")); }
+        } catch { throw new Error(t(heic ? "badHeic" : "badImage")); }
         if (slot === "photo") {
           const ratio = j.srcW / j.srcH;
           check = { size: j.srcW >= 420 && j.srcH >= 540, shape: Math.abs(ratio - 35 / 45) < 0.12, file: Math.min(blob.size, j.blob.size) < 4 * 1048576 };
@@ -1553,7 +1556,7 @@ async function addFiles(slot, fileList) {
         } else if (type !== "image/jpeg" || j.blob.size < blob.size) {
           blob = j.blob; type = "image/jpeg"; name = name.replace(/\.\w+$/, "") + ".jpg";
         }
-      } else if (blob.size > 15 * 1048576) throw new Error(t("tooBig"));
+      }
       tt.set(t("encrypting", { name }), 45);
       const bytes = new Uint8Array(await blob.arrayBuffer());
       const id = randomId("f_");
@@ -1564,7 +1567,7 @@ async function addFiles(slot, fileList) {
         if (slotDef && !slotDef.multi) d.files.filter((f) => f.slot === slot).forEach((f) => (f.slot = "other"));
         d.files.push({ id, slot, name, type, size: bytes.length, addedAt: nowISO(), by: "you", sha, order: Date.now(), ...(check ? { check } : {}) });
       }, { log: `Added ${name} (${L(slotDef?.title) || slot})` });
-      tt.done(t("uploaded", { name }));
+      tt.done(slot === "passport" && type === "application/pdf" && bytes.length >= IRCC_MAX ? t("pdfTooBig", { size: fmtSize(bytes.length) }) : t("uploaded", { name }), slot === "passport" && type === "application/pdf" && bytes.length >= IRCC_MAX);
     } catch (e) {
       console.warn(e);
       tt.done(t("uploadFail", { name: file.name, why: e.message }), true);
@@ -1612,7 +1615,7 @@ async function buildPassportPdf() {
   if (!pages.length) return;
   const tt = toast(t("building"), { progress: true });
   try {
-    let settings = [[1800, 0.82], [1500, 0.74], [1200, 0.66]];
+    const settings = [[1800, 0.82], [1500, 0.74], [1200, 0.66], [1000, 0.56], [850, 0.46]];
     let pdf = null;
     for (const [side, q] of settings) {
       const imgs = [];
@@ -1622,7 +1625,7 @@ async function buildPassportPdf() {
         imgs.push({ bytes: new Uint8Array(await j.blob.arrayBuffer()), w: j.w, h: j.h });
       }
       pdf = jpegsToPdf(imgs);
-      if (pdf.length < 3.9 * 1048576) break;
+      if (pdf.length < IRCC_MAX * 0.97) break;
     }
     const id = randomId("f_");
     const sha = await S.store.writeFile(id, await seal(S.key, pdf));
@@ -1632,7 +1635,8 @@ async function buildPassportPdf() {
       d.files.push({ id, slot: "passportPdf", name: "passport-all-pages.pdf", type: "application/pdf", size: pdf.length, pages: pages.length, addedAt: nowISO(), by: "you", sha });
     }, { log: `Built passport PDF (${pages.length} pages)` });
     for (const o of old) S.store.deleteFile(o.id, o.sha).catch(() => {});
-    tt.done(t("pdfReady") + " · " + fmtSize(pdf.length));
+    if (pdf.length >= IRCC_MAX) tt.done(t("pdfTooBig", { size: fmtSize(pdf.length) }), true);
+    else tt.done(t("pdfReady") + " · " + fmtSize(pdf.length));
   } catch (e) {
     console.warn(e);
     tt.done(String(e.message || e), true);
