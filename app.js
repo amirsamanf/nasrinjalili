@@ -488,8 +488,8 @@ const PLACES = ["Vancouver International Airport (YVR)", "Toronto Pearson Airpor
 
 const SLOTS = [
   { id: "passport", req: true, wide: true, accept: "image/*,application/pdf", multi: true, camera: "environment", icon: "passport",
-    title: { en: "Passport, every page", fa: "گذرنامه، همه صفحات" },
-    desc: { en: "Photograph every page of the new passport, blank ones too. Then combine them into one PDF for IRCC.", fa: "از همه صفحات گذرنامه جدید، حتی صفحات خالی، عکس بگیرید و سپس همه را یک PDF کنید." } },
+    title: { en: "Passport pages", fa: "صفحات گذرنامه" },
+    desc: { en: "New passport first, then the old passport's photo, visa and stamped pages, all in one PDF for IRCC.", fa: "ابتدا گذرنامه جدید، سپس صفحه عکس، ویزا و صفحات مهردار گذرنامه قدیم، همه در یک PDF برای IRCC." } },
   { id: "photo", req: true, accept: "image/jpeg,image/png", multi: false, camera: "user", icon: "camera",
     title: { en: "Digital photo", fa: "عکس دیجیتال" },
     desc: { en: "Recent, front-facing, plain light background, no glare on glasses.", fa: "جدید، از روبه‌رو، زمینه روشن و ساده، بدون انعکاس عینک." } },
@@ -499,6 +499,9 @@ const SLOTS = [
   { id: "letter", accept: "application/pdf,image/*", multi: false, icon: "note",
     title: { en: "Letter of explanation", fa: "نامه توضیحات" },
     desc: { en: "Uploads in IRCC's optional \"Client Information\" slot.", fa: "در بخش اختیاری «Client Information» در IRCC بارگذاری می‌شود." } },
+  { id: "medical", accept: "application/pdf,image/*", multi: true, icon: "shield",
+    title: { en: "Upfront medical", fa: "معاینه پزشکی" },
+    desc: { en: "The panel clinic's information sheet with her health ID numbers.", fa: "برگه اطلاعات کلینیک با شماره‌های پرونده پزشکی." } },
   { id: "formDraft", accept: "application/pdf", multi: true, icon: "pen",
     title: { en: "Form draft from Claude", fa: "پیش‌نویس فرم از Claude" },
     desc: { en: "Download, open in Adobe, finish it. Needs Adobe Reader; browsers can't show it.", fa: "دانلود کنید و در Adobe باز کنید. مرورگر آن را نشان نمی‌دهد." } },
