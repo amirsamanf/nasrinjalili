@@ -61,7 +61,7 @@ const T = {
     policyTitle: "The policy",
     policyBody: "Temporary public policy for Iranian nationals in Canada. Open until Mar 31, 2027. One extension of up to 2 years.",
     fPermit: "Current permit", fPassport: "New passport", fBio: "Biometrics", fFees: "Fees", fAddress: "Address", fDaughter: "Daughter in Canada", fContact: "Contact", fDraft: "IRCC draft",
-    validTo: "valid to", issued: "issued", expires: "expires", noFee: "no biometrics fee",
+    validTo: "valid to", issued: "issued", expires: "expires", noFee: "no biometrics fee", newBio: "giving new biometrics, $85",
     unitFlag: "Work permit says {unitAlt}. Confirm in Fill the gaps.",
     draftKept: "kept until",
     nxAnswers: "Answer {n} more questions", nxAnswersD: "Husband's dates, arrivals, education, work history, background.",
@@ -69,7 +69,7 @@ const T = {
     nxPassport: "Photograph every passport page", nxPassportD: "We'll combine them into one PDF for IRCC.",
     nxPhoto: "Add a digital photo", nxPhotoD: "Front-facing, plain light background, taken recently.",
     nxForm: "Finish and validate the IMM 5710", nxFormD: "Open the draft in Adobe, complete it, click Validate, upload it here.",
-    nxSubmit: "Submit and pay on IRCC", nxSubmitD: "Upload the documents, sign, pay $255.",
+    nxSubmit: "Submit and pay on IRCC", nxSubmitD: "Upload the documents, sign, pay $340.",
     nxClaude: "Send updates to Claude", nxClaudeD: "Export when you've added new answers or files.",
     allDone: "Everything is done. Keep the IRCC confirmation safe.",
     // gaps
@@ -114,8 +114,9 @@ const T = {
     ck_photo: "Digital photo ready", ck_photoD: "Documents → Digital photo.",
     ck_ircc: "Upload everything to IRCC", ck_irccD: "Sign in → Continue application → upload form, passport, photo, letter.",
     ck_sign: "Sign electronically", ck_signD: "Type her name exactly as on the passport.",
-    ck_paid: "Pay $255 by card", ck_paidD: "Work permit $155 + open work permit holder $100.",
+    ck_paid: "Pay $340 by card", ck_paidD: "Work permit $155 + open work permit holder $100 + biometrics $85.",
     ck_confirm: "Save the confirmation and receipt", ck_confirmD: "Upload them to Documents → IRCC confirmation. They prove maintained status.",
+    ck_bio: "Give new biometrics", ck_bioD: "Wait for IRCC's instruction letter, then book an appointment.",
     auto: "auto",
     openIrcc: "Open IRCC sign-in", policyPage: "IRCC Iran measures",
     claudeTitle: "Keep Claude in the loop",
@@ -170,7 +171,7 @@ const T = {
     policyTitle: "سیاست موقت",
     policyBody: "سیاست موقت برای اتباع ایران در کانادا. تا ۳۱ مارس ۲۰۲۷ باز است. یک بار تمدید تا ۲ سال.",
     fPermit: "مجوز فعلی", fPassport: "گذرنامه جدید", fBio: "انگشت‌نگاری", fFees: "هزینه‌ها", fAddress: "نشانی", fDaughter: "دختر در کانادا", fContact: "تماس", fDraft: "پیش‌نویس IRCC",
-    validTo: "معتبر تا", issued: "صدور", expires: "انقضا", noFee: "بدون هزینه انگشت‌نگاری",
+    validTo: "معتبر تا", issued: "صدور", expires: "انقضا", noFee: "بدون هزینه انگشت‌نگاری", newBio: "انگشت‌نگاری جدید، ۸۵ دلار",
     unitFlag: "در مجوز کار واحد {unitAlt} آمده است. در «تکمیل اطلاعات» تأیید کنید.",
     draftKept: "نگهداری تا",
     nxAnswers: "به {n} سؤال دیگر پاسخ دهید", nxAnswersD: "تاریخ‌های همسر، ورودها، تحصیلات، سوابق کار و سؤالات سابقه.",
@@ -178,7 +179,7 @@ const T = {
     nxPassport: "از همه صفحات گذرنامه عکس بگیرید", nxPassportD: "همه را به یک فایل PDF برای IRCC تبدیل می‌کنیم.",
     nxPhoto: "عکس دیجیتال اضافه کنید", nxPhotoD: "از روبه‌رو، زمینه روشن و ساده، عکس جدید.",
     nxForm: "فرم IMM 5710 را کامل و تأیید کنید", nxFormD: "پیش‌نویس را در Adobe باز کنید، کامل کنید، Validate را بزنید و اینجا بارگذاری کنید.",
-    nxSubmit: "ارسال و پرداخت در سایت IRCC", nxSubmitD: "مدارک را بارگذاری کنید، امضا کنید و ۲۵۵ دلار بپردازید.",
+    nxSubmit: "ارسال و پرداخت در سایت IRCC", nxSubmitD: "مدارک را بارگذاری کنید، امضا کنید و ۳۴۰ دلار بپردازید.",
     nxClaude: "به‌روزرسانی برای Claude بفرستید", nxClaudeD: "وقتی پاسخ یا فایل تازه اضافه کردید، خروجی بگیرید.",
     allDone: "همه مراحل انجام شد. تأییدیه IRCC را نگه دارید.",
     gapsTitle: "تکمیل اطلاعات",
@@ -220,8 +221,9 @@ const T = {
     ck_photo: "عکس دیجیتال آماده", ck_photoD: "مدارک ← عکس دیجیتال.",
     ck_ircc: "بارگذاری همه مدارک در IRCC", ck_irccD: "ورود ← ادامه درخواست ← بارگذاری فرم، گذرنامه، عکس و نامه.",
     ck_sign: "امضای الکترونیکی", ck_signD: "نام را دقیقاً مانند گذرنامه بنویسید.",
-    ck_paid: "پرداخت ۲۵۵ دلار با کارت", ck_paidD: "مجوز کار ۱۵۵ + مجوز کار باز ۱۰۰ دلار.",
+    ck_paid: "پرداخت ۳۴۰ دلار با کارت", ck_paidD: "مجوز کار ۱۵۵ + مجوز کار باز ۱۰۰ + انگشت‌نگاری ۸۵ دلار.",
     ck_confirm: "ذخیره تأییدیه و رسید", ck_confirmD: "در مدارک ← تأییدیه IRCC بارگذاری کنید. اثبات حفظ وضعیت اقامت است.",
+    ck_bio: "انگشت‌نگاری جدید", ck_bioD: "منتظر نامه دستورالعمل IRCC بمانید و سپس وقت بگیرید.",
     auto: "خودکار",
     openIrcc: "ورود به IRCC", policyPage: "صفحه سیاست ایران",
     claudeTitle: "در جریان گذاشتن Claude",
@@ -1179,11 +1181,11 @@ function overviewHTML() {
   <div class="grid3" style="margin-bottom:26px">
     <div class="fact"><div class="k">${esc(t("fPermit"))}</div><div class="v">${esc(p.permit.type)}</div><div class="s">${esc(t("issued"))} ${fmtDate(p.permit.issued)} · ${esc(t("expires"))} ${fmtDate(p.permit.expires)}</div></div>
     <div class="fact"><div class="k">${esc(t("fPassport"))}</div><div class="v">${esc(p.passport.country)}</div><div class="s">${esc(t("validTo"))} ${fmtDate(p.passport.expires)}</div></div>
-    <div class="fact"><div class="k">${esc(t("fBio"))}</div><div class="v">${esc(p.biometrics.given)}</div><div class="s">${esc(t("validTo"))} ${esc(p.biometrics.validUntil)} · ${esc(t("noFee"))}</div></div>
+    <div class="fact"><div class="k">${esc(t("fBio"))}</div><div class="v">${esc(p.biometrics.given)}</div><div class="s">${esc(t("validTo"))} ${esc(p.biometrics.validUntil)} · ${esc(t(p.biometrics.renew ? "newBio" : "noFee"))}</div></div>
     <div class="fact ${unitFlag ? "flag" : ""}"><div class="k">${esc(t("fAddress"))}</div><div class="v">${esc(unit)}-${esc(p.address.street)}</div><div class="s">${esc(p.address.city)}, ${esc(p.address.province)} ${esc(p.address.postal)}${unitFlag ? `<br>${esc(t("unitFlag"))}` : ""}</div></div>
     <div class="fact"><div class="k">${esc(t("fContact"))}</div><div class="v mono" style="font-size:15px">${esc(p.phone)}</div><div class="s" style="overflow-wrap:anywhere">${esc(p.email)}</div></div>
     <div class="fact"><div class="k">${esc(t("fDaughter"))}</div><div class="v">${esc(p.daughter.name)}</div><div class="s">${esc(p.daughter.status)} · ${fmtDate(p.daughter.dob)}</div></div>
-    <div class="fact"><div class="k">${esc(t("fFees"))}</div><div class="v mono">$${d.application.fees.total} CAD</div><div class="s">$${d.application.fees.workPermit} + $${d.application.fees.openPermitHolder}</div></div>
+    <div class="fact"><div class="k">${esc(t("fFees"))}</div><div class="v mono">$${d.application.fees.total} CAD</div><div class="s">$${d.application.fees.workPermit} + $${d.application.fees.openPermitHolder}${d.application.fees.biometrics ? ` + $${d.application.fees.biometrics}` : ""}</div></div>
     <div class="fact"><div class="k">${esc(t("fDraft"))}</div><div class="v">${esc(d.application.form)}</div><div class="s">${esc(t("draftKept"))} ${fmtDate(d.application.draftDeletedAfter)}</div></div>
     <div class="fact"><div class="k">${esc(t("policyTitle"))}</div><div class="v">${esc(t("caseTitle"))}</div><div class="s">${esc(t("policyBody"))}</div></div>
   </div>
@@ -1405,7 +1407,7 @@ function submitHTML() {
   const ck = S.data.checklist;
   const ds = docsStatus();
   const items = [
-    ["adobe"], ["validate"], ["form", ds.form], ["passport", ds.passportPdf], ["photo", ds.photo], ["ircc"], ["sign"], ["paid"], ["confirm"],
+    ["adobe"], ["validate"], ["form", ds.form], ["passport", ds.passportPdf], ["photo", ds.photo], ["ircc"], ["sign"], ["paid"], ["confirm"], ["bio"],
   ];
   return `<h2 class="display">${esc(t("submitTitle"))}</h2><p class="lede">${esc(t("submitLede"))}</p>
   <div class="split">
