@@ -1291,24 +1291,49 @@ function fieldHTML(g, f) {
       return "";
   }
 }
+// Each period keeps its colour (r.c) so removing one never repaints the others.
+const ROW_COLORS = 6;
+function rowColors(rows) {
+  const used = new Set(rows.map((r) => r.c).filter(Number.isInteger));
+  for (const r of rows) {
+    if (Number.isInteger(r.c)) continue;
+    let c = 0;
+    while (used.has(c) && c < ROW_COLORS) c++;
+    r.c = c % ROW_COLORS;
+    used.add(r.c);
+  }
+  return rows.map((r) => r.c);
+}
 function coverageHTML() {
   const w = workStatus();
   const n = w.covered.length;
-  let segs = "", i = 0;
+  const rows = S.data.answers.workRows || [];
+  const cols = rowColors(rows);
+  const span = (a, b) => `left:${(100 * a) / n}%;width:${(100 * (b - a + 1)) / n}%`;
+  let gaps = "", i = 0;
   while (i < n) {
-    if (w.covered[i]) { let j = i; while (j + 1 < n && w.covered[j + 1]) j++; segs += `<i style="left:${(100 * i) / n}%;width:${(100 * (j - i + 1)) / n}%"></i>`; i = j + 1; } else i++;
+    if (!w.covered[i]) { let j = i; while (j + 1 < n && !w.covered[j + 1]) j++; gaps += `<b style="${span(i, j)}"></b>`; i = j + 1; } else i++;
   }
+  const lanes = rows.map((r, k) => {
+    const a = monthIndex(r.from), b = r.present ? w.end : monthIndex(r.to);
+    const lo = a == null ? null : Math.max(a, w.start) - w.start, hi = b == null ? null : Math.min(b, w.end) - w.start;
+    const tip = `${r.activity || t("activity")} · ${r.from || "?"} – ${r.present ? t("present") : r.to || "?"}`;
+    return `<div class="lane wc${cols[k]}">${lo != null && hi != null && hi >= lo ? `<i style="${span(lo, hi)}" title="${esc(tip)}"></i>` : ""}</div>`;
+  }).join("") || `<div class="lane"></div>`;
+  const legend = rows.map((r, k) => `<li class="wc${cols[k]}"><span class="sw"></span>${esc(r.activity || `${t("activity")} ${faDigits(k + 1)}`)}</li>`).join("");
   return `<div class="coverage"><div class="eyebrow" style="margin-bottom:6px">${esc(t("coverage"))}</div>
-    <div class="bar">${segs}</div><div class="lbls"><span>${ymFromIndex(w.start)}</span><span>${ymFromIndex(w.end)}</span></div>
+    <div class="bar">${lanes}${gaps}</div><div class="lbls"><span>${ymFromIndex(w.start)}</span><span>${ymFromIndex(w.end)}</span></div>
+    ${legend ? `<ul class="cov-legend">${legend}</ul>` : ""}
     <div class="small" style="margin-top:6px;color:${w.gaps.length ? "var(--danger)" : "var(--accent)"}">${w.gaps.length ? w.gaps.slice(0, 3).map(([a, b]) => esc(t("gapFound", { from: a, to: b }))).join("<br>") : esc(t("noGaps"))}</div></div>`;
 }
 function workHTML() {
   const rows = S.data.answers.workRows;
-  const quick = [["Homemaker", "خانه‌دار"], ["Retired", "بازنشسته"], ["Unemployed", "بیکار"], ["Visiting family in Canada", "دیدار خانواده در کانادا"]];
+  const cols = rowColors(rows);
+  const quick =[["Homemaker", "خانه‌دار"], ["Retired", "بازنشسته"], ["Unemployed", "بیکار"], ["Visiting family in Canada", "دیدار خانواده در کانادا"]];
   return `<div class="q">
     <div id="work-cov">${coverageHTML()}</div>
     <div class="stack" style="gap:10px">${rows.map((r, i) => `
-      <div class="work-row">
+      <div class="work-row wc${cols[i]}">
         <div><label for="w-${i}-from">${esc(t("from"))}</label><input class="input" type="month" id="w-${i}-from" data-row="${i}" data-col="from" value="${esc(r.from || "")}" min="1950-01" max="${todayISO().slice(0, 7)}"></div>
         <div><label for="w-${i}-to">${esc(t("to"))}</label><input class="input" type="month" id="w-${i}-to" data-row="${i}" data-col="to" value="${esc(r.to || "")}" ${r.present ? "disabled" : ""} max="${todayISO().slice(0, 7)}">
           <label class="present"><input type="checkbox" id="w-${i}-present" data-row="${i}" data-col="present" ${r.present ? "checked" : ""}>${esc(t("present"))}</label></div>

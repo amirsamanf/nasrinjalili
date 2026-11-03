@@ -329,8 +329,23 @@ textarea.input { min-height: 110px; resize: vertical; line-height: 1.5; }
 .work-row .input { min-height: 38px; padding: 7px 9px; font-size: 14px; }
 .work-row .present { display: flex; gap: 5px; align-items: center; font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
 .coverage { margin: 2px 0 8px; }
-.coverage .bar { position: relative; height: 8px; border-radius: 4px; background: var(--danger-soft); overflow: hidden; direction: ltr; }
-.coverage .bar i { position: absolute; top: 0; bottom: 0; background: var(--accent); }
+.work-row[class*="wc"] { border-inline-start: 4px solid var(--wc); }
+.coverage .bar { position: relative; display: flex; flex-direction: column; gap: 2px; direction: ltr; }
+.coverage .lane { position: relative; height: 7px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.coverage .lane i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: var(--wc); }
+.coverage .bar b { position: absolute; top: -2px; bottom: -2px; background: color-mix(in srgb, var(--danger) 30%, transparent); border-inline: 1px solid var(--danger); }
+.cov-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-2); }
+.cov-legend li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cov-legend .sw { width: 10px; height: 10px; border-radius: 3px; background: var(--wc); flex: none; }
+.wc0 { --wc: #2a78d6; } .wc1 { --wc: #eb6834; } .wc2 { --wc: #1baf7a; } .wc3 { --wc: #6250d6; } .wc4 { --wc: #e87ba4; } .wc5 { --wc: #008300; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .wc0 { --wc: #3987e5; } :root:not([data-theme="light"]) .wc1 { --wc: #d95926; }
+  :root:not([data-theme="light"]) .wc2 { --wc: #199e70; } :root:not([data-theme="light"]) .wc3 { --wc: #9085e9; }
+  :root:not([data-theme="light"]) .wc4 { --wc: #d55181; }
+}
+:root[data-theme="dark"] .wc0 { --wc: #3987e5; } :root[data-theme="dark"] .wc1 { --wc: #d95926; }
+:root[data-theme="dark"] .wc2 { --wc: #199e70; } :root[data-theme="dark"] .wc3 { --wc: #9085e9; }
+:root[data-theme="dark"] .wc4 { --wc: #d55181; }
 .coverage .lbls { display: flex; justify-content: space-between; font: 500 11.5px var(--font-mono); color: var(--ink-3); margin-top: 5px; direction: ltr; }
 .qs-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .qs-chips button { border: 1px dashed var(--line-strong); background: transparent; border-radius: 8px; padding: 5px 11px; font-size: 13px; color: var(--ink-2); }
@@ -440,6 +455,6 @@ textarea.input { min-height: 110px; resize: vertical; line-height: 1.5; }
 <div id="app" aria-live="polite"></div>
 <div id="toasts" role="status" aria-live="polite"></div>
 <noscript><p style="padding:24px">This page needs JavaScript to decrypt the vault.</p></noscript>
-<script type="module" src="app.js?v=9"></script>
+<script type="module" src="app.js?v=10"></script>
 </body>
 </html>
