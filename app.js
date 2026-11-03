@@ -1292,7 +1292,7 @@ function fieldHTML(g, f) {
   }
 }
 // Each period keeps its colour (r.c) so removing one never repaints the others.
-const ROW_COLORS = 6;
+const ROW_COLORS = 7;
 function rowColors(rows) {
   const used = new Set(rows.map((r) => r.c).filter(Number.isInteger));
   for (const r of rows) {
