@@ -259,12 +259,16 @@ let LANG = store.get("nasrin.lang") === "fa" ? "fa" : "en";
 function fill(s) {
   if (!S?.data || typeof s !== "string" || !s.includes("{")) return s;
   const p = S.data.profile;
+  const firstVisaDate = () => p.firstVisa?.issued || p.visa?.issued || "";
   const gdate = (iso) => (iso ? new Intl.DateTimeFormat("en-CA", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }).format(new Date(iso + "T12:00:00Z")) : "");
   const map = {
     husband: p.lateHusband || "", unit: faDigits(p.address?.unit || ""), unitAlt: faDigits(p.address?.unitAlt || ""),
     street: p.address?.street || "", phone: p.phone || "",
     visaIssued: gdate(p.visa?.issued), visaIssuedFa: jalaliLabel(p.visa?.issued || ""),
     visaYear: faDigits((p.visa?.issued || "").slice(0, 4)), permitYear: faDigits((p.permit?.issued || "").slice(0, 4)),
+    // Her first visa (the one she first entered on) sits in an older passport than the current visa
+    firstVisaIssued: gdate(firstVisaDate()), firstVisaIssuedFa: jalaliLabel(firstVisaDate()),
+    firstVisaYear: faDigits(firstVisaDate().slice(0, 4)),
   };
   return s.replace(/\{(\w+)\}/g, (m, k) => (k in map ? map[k] : m));
 }
@@ -404,7 +408,7 @@ const GROUPS = [
   {
     id: "entry", icon: "send",
     title: { en: "Coming to Canada", fa: "ورود به کانادا" },
-    intro: { en: "Her visitor visa was issued on {visaIssued}, so the first arrival is after that.", fa: "ویزای او {visaIssuedFa} صادر شده است؛ پس اولین ورود بعد از آن است." },
+    intro: { en: "Her first visitor visa was issued on {firstVisaIssued}, so her first arrival is after that.", fa: "اولین ویزای او {firstVisaIssuedFa} صادر شده است؛ پس اولین ورود بعد از آن است." },
     fields: [
       { id: "firstEntryDate", type: "date", min: "visa", label: { en: "Date of her first arrival in Canada", fa: "تاریخ اولین ورود به کانادا" } },
       { id: "firstEntryPlace", type: "place", label: { en: "Where she arrived (airport or border crossing)", fa: "محل ورود (فرودگاه یا مرز)" } },
@@ -448,7 +452,7 @@ const GROUPS = [
       { id: "bgOverstay", type: YN, details: true, label: { en: "Has she ever stayed past her status, or studied or worked without permission, in Canada?", fa: "آیا تا کنون در کانادا بیش از مدت مجاز مانده یا بدون اجازه کار یا تحصیل کرده است؟" } },
       { id: "bgRefused", type: YN, details: true, label: { en: "Has she ever been refused a visa or permit, denied entry, or ordered to leave any country?", fa: "آیا تا کنون ویزا یا مجوزش رد شده، از ورود منع شده یا دستور ترک کشوری را گرفته است؟" } },
       { id: "bgPrevApplied", type: YN, details: true, label: { en: "Has she applied to enter or stay in Canada before?", fa: "آیا قبلاً برای ورود یا ماندن در کانادا درخواست داده است؟" },
-        hint: { en: "Her {visaYear} visitor visa and {permitYear} work permit count, so this is most likely Yes.", fa: "ویزای {visaYear} و مجوز کار {permitYear} حساب می‌شوند؛ پس به احتمال زیاد «بله» است." } },
+        hint: { en: "Her visitor visas ({firstVisaYear} and {visaYear}) and {permitYear} work permit count, so this is most likely Yes.", fa: "ویزاهای او ({firstVisaYear} و {visaYear}) و مجوز کار {permitYear} حساب می‌شوند؛ پس به احتمال زیاد «بله» است." } },
       { id: "bgCriminal", type: YN, details: true, label: { en: "Has she ever committed, been arrested for, charged with or convicted of a crime in any country?", fa: "آیا تا کنون در هر کشوری مرتکب جرم شده، بازداشت، متهم یا محکوم شده است؟" } },
       { id: "bgMilitary", type: YN, details: true, label: { en: "Has she served in any military, militia, civil defence unit, security organization or police force?", fa: "آیا در نیروی نظامی، شبه‌نظامی، دفاع مدنی، سازمان امنیتی یا پلیس خدمت کرده است؟" } },
       { id: "bgGroups", type: YN, details: true, label: { en: "Has she been a member of, or associated with, a political party or group that used or supported violence?", fa: "آیا عضو یا مرتبط با حزب یا گروهی بوده که از خشونت استفاده یا حمایت کرده است؟" } },
@@ -491,7 +495,7 @@ const PLACES = ["Vancouver International Airport (YVR)", "Toronto Pearson Airpor
 const SLOTS = [
   { id: "passport", req: true, wide: true, accept: "image/*,application/pdf", multi: true, camera: "environment", icon: "passport",
     title: { en: "Passport pages", fa: "صفحات گذرنامه" },
-    desc: { en: "New passport first, then the old passport's photo, visa and stamped pages, all in one PDF for IRCC.", fa: "ابتدا گذرنامه جدید، سپس صفحه عکس، ویزا و صفحات مهردار گذرنامه قدیم، همه در یک PDF برای IRCC." } },
+    desc: { en: "New passport first, then the previous passport, then the oldest passport's photo and visa pages, all in one PDF for IRCC.", fa: "ابتدا گذرنامه جدید، سپس گذرنامه قبلی، و در آخر صفحه عکس و ویزای قدیمی‌ترین گذرنامه، همه در یک PDF برای IRCC." } },
   { id: "photo", req: true, accept: "image/jpeg,image/png", multi: false, camera: "user", icon: "camera",
     title: { en: "Digital photo", fa: "عکس دیجیتال" },
     desc: { en: "Recent, front-facing, plain light background, no glare on glasses.", fa: "جدید، از روبه‌رو، زمینه روشن و ساده، بدون انعکاس عینک." } },
@@ -1243,7 +1247,7 @@ function fieldHTML(g, f) {
       const jal = S.jalOpen === f.id;
       return `<div class="q">${lbl}${hintHTML(f)}
         <div class="date-row">
-          <input class="input" type="date" id="f-${f.id}" data-ans="${f.id}" data-store="${st}" value="${esc(v)}" ${f.min === "visa" && S.data.profile.visa?.issued ? `min="${S.data.profile.visa.issued}"` : ""} max="${todayISO()}">
+          <input class="input" type="date" id="f-${f.id}" data-ans="${f.id}" data-store="${st}" value="${esc(v)}" ${f.min === "visa" && (S.data.profile.firstVisa?.issued || S.data.profile.visa?.issued) ? `min="${S.data.profile.firstVisa?.issued || S.data.profile.visa.issued}"` : ""} max="${todayISO()}">
           <button class="btn sm" data-action="jal-open" data-id="${f.id}" aria-expanded="${jal}">${ic("calendar")}<span lang="fa">${esc(t("jalaliEnter"))}</span></button>
           ${unsureHTML(g, f)}
         </div>
