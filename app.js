@@ -1304,6 +1304,11 @@ function rowColors(rows) {
   }
   return rows.map((r) => r.c);
 }
+// Row indexes, newest start date first; rows still missing a start date stay last, next to Add.
+function workOrder(rows) {
+  const end = (r) => (r.present ? "9999-99" : r.to || "");
+  return rows.map((r, k) => k).sort((x, y) => String(rows[y].from || "").localeCompare(String(rows[x].from || "")) || end(rows[y]).localeCompare(end(rows[x])) || x - y);
+}
 function coverageHTML() {
   const w = workStatus();
   const n = w.covered.length;
@@ -1314,13 +1319,15 @@ function coverageHTML() {
   while (i < n) {
     if (!w.covered[i]) { let j = i; while (j + 1 < n && !w.covered[j + 1]) j++; gaps += `<b style="${span(i, j)}"></b>`; i = j + 1; } else i++;
   }
-  const lanes = rows.map((r, k) => {
+  const order = workOrder(rows);
+  const lanes = order.map((k) => {
+    const r = rows[k];
     const a = monthIndex(r.from), b = r.present ? w.end : monthIndex(r.to);
     const lo = a == null ? null : Math.max(a, w.start) - w.start, hi = b == null ? null : Math.min(b, w.end) - w.start;
     const tip = `${r.activity || t("activity")} · ${r.from || "?"} – ${r.present ? t("present") : r.to || "?"}`;
     return `<div class="lane wc${cols[k]}">${lo != null && hi != null && hi >= lo ? `<i style="${span(lo, hi)}" title="${esc(tip)}"></i>` : ""}</div>`;
   }).join("") || `<div class="lane"></div>`;
-  const legend = rows.map((r, k) => `<li class="wc${cols[k]}"><span class="sw"></span>${esc(r.activity || `${t("activity")} ${faDigits(k + 1)}`)}</li>`).join("");
+  const legend = order.map((k) => `<li class="wc${cols[k]}"><span class="sw"></span>${esc(rows[k].activity || `${t("activity")} ${faDigits(k + 1)}`)}</li>`).join("");
   return `<div class="coverage"><div class="eyebrow" style="margin-bottom:6px">${esc(t("coverage"))}</div>
     <div class="bar">${lanes}${gaps}</div><div class="lbls"><span>${ymFromIndex(w.start)}</span><span>${ymFromIndex(w.end)}</span></div>
     ${legend ? `<ul class="cov-legend">${legend}</ul>` : ""}
@@ -1332,7 +1339,7 @@ function workHTML() {
   const quick =[["Homemaker", "خانه‌دار"], ["Retired", "بازنشسته"], ["Unemployed", "بیکار"], ["Visiting family in Canada", "دیدار خانواده در کانادا"]];
   return `<div class="q">
     <div id="work-cov">${coverageHTML()}</div>
-    <div class="stack" style="gap:10px">${rows.map((r, i) => `
+    <div class="stack" style="gap:10px">${workOrder(rows).map((i) => [rows[i], i]).map(([r, i]) => `
       <div class="work-row wc${cols[i]}">
         <div><label for="w-${i}-from">${esc(t("from"))}</label><input class="input" type="month" id="w-${i}-from" data-row="${i}" data-col="from" value="${esc(r.from || "")}" min="1950-01" max="${todayISO().slice(0, 7)}"></div>
         <div><label for="w-${i}-to">${esc(t("to"))}</label><input class="input" type="month" id="w-${i}-to" data-row="${i}" data-col="to" value="${esc(r.to || "")}" ${r.present ? "disabled" : ""} max="${todayISO().slice(0, 7)}">
