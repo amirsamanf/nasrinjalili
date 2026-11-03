@@ -79,7 +79,7 @@ const T = {
     nextGroup: "Next section", prevGroup: "Back", allAnswered: "All sections answered",
     jalaliEnter: "Persian date", jalaliUse: "Use this date", jalaliYear: "سال", jalaliMonth: "ماه", jalaliDay: "روز",
     jalaliBad: "That Persian date doesn't exist. Check the numbers.",
-    addRow: "Add a period", present: "to now", from: "From", to: "To", activity: "Job or activity", employer: "Employer", city: "City", country: "Country",
+    addRow: "Add a period", done: "Done", months: "{n} months", present: "to now", from: "From", to: "To", activity: "Job or activity", employer: "Employer", city: "City", country: "Country",
     coverage: "Coverage, last 10 years", gapFound: "Missing period: {from} to {to}", noGaps: "No gaps. Every month is covered.",
     copy: "Copy", copied: "Copied",
     idsNote: "Claude never types ID numbers. Enter them here once, then use Copy when filling the form in Adobe.",
@@ -188,7 +188,7 @@ const T = {
     nextGroup: "بخش بعد", prevGroup: "قبلی", allAnswered: "همه بخش‌ها پاسخ داده شد",
     jalaliEnter: "تاریخ شمسی", jalaliUse: "ثبت این تاریخ", jalaliYear: "سال", jalaliMonth: "ماه", jalaliDay: "روز",
     jalaliBad: "این تاریخ شمسی وجود ندارد. اعداد را بررسی کنید.",
-    addRow: "افزودن دوره", present: "تا اکنون", from: "از", to: "تا", activity: "شغل یا فعالیت", employer: "کارفرما", city: "شهر", country: "کشور",
+    addRow: "افزودن دوره", done: "تمام", months: "{n} ماه", present: "تا اکنون", from: "از", to: "تا", activity: "شغل یا فعالیت", employer: "کارفرما", city: "شهر", country: "کشور",
     coverage: "پوشش ۱۰ سال اخیر", gapFound: "دوره خالی: {from} تا {to}", noGaps: "بدون فاصله. همه ماه‌ها پوشش داده شده است.",
     copy: "کپی", copied: "کپی شد",
     idsNote: "Claude هرگز شماره‌های شناسایی را وارد نمی‌کند. یک بار اینجا بنویسید و هنگام پر کردن فرم در Adobe از دکمه کپی استفاده کنید.",
@@ -1325,13 +1325,58 @@ function coverageHTML() {
     const a = monthIndex(r.from), b = r.present ? w.end : monthIndex(r.to);
     const lo = a == null ? null : Math.max(a, w.start) - w.start, hi = b == null ? null : Math.min(b, w.end) - w.start;
     const tip = `${r.activity || t("activity")} · ${r.from || "?"} – ${r.present ? t("present") : r.to || "?"}`;
-    return `<div class="lane wc${cols[k]}">${lo != null && hi != null && hi >= lo ? `<i style="${span(lo, hi)}" title="${esc(tip)}"></i>` : ""}</div>`;
+    return `<div class="lane wc${cols[k]}">${lo != null && hi != null && hi >= lo ? `<button class="seg" style="${span(lo, hi)}" data-action="work-sheet" data-row="${k}" title="${esc(tip)}" aria-label="${esc(tip)}"></button>` : ""}</div>`;
   }).join("") || `<div class="lane"></div>`;
-  const legend = order.map((k) => `<li class="wc${cols[k]}"><span class="sw"></span>${esc(rows[k].activity || `${t("activity")} ${faDigits(k + 1)}`)}</li>`).join("");
+  const legend = order.map((k) => `<li class="wc${cols[k]}"><button data-action="work-sheet" data-row="${k}"><span class="sw"></span>${esc(rows[k].activity || `${t("activity")} ${faDigits(k + 1)}`)}</button></li>`).join("");
   return `<div class="coverage"><div class="eyebrow" style="margin-bottom:6px">${esc(t("coverage"))}</div>
     <div class="bar">${lanes}${gaps}</div><div class="lbls"><span>${ymFromIndex(w.start)}</span><span>${ymFromIndex(w.end)}</span></div>
     ${legend ? `<ul class="cov-legend">${legend}</ul>` : ""}
     <div class="small" style="margin-top:6px;color:${w.gaps.length ? "var(--danger)" : "var(--accent)"}">${w.gaps.length ? w.gaps.slice(0, 3).map(([a, b]) => esc(t("gapFound", { from: a, to: b }))).join("<br>") : esc(t("noGaps"))}</div></div>`;
+}
+// Bottom sheet for one period, opened from its line in the coverage bar. Its inputs carry the
+// same data-row/data-col as the list, so the usual input handlers save them.
+function workWhen(r) {
+  const a = monthIndex(r.from), now = new Date();
+  const b = r.present ? now.getUTCFullYear() * 12 + now.getUTCMonth() : monthIndex(r.to);
+  const n = a != null && b != null && b >= a ? b - a + 1 : 0;
+  return `${r.from || "?"} – ${r.present ? t("present") : r.to || "?"}${n ? ` · ${t("months", { n: faDigits(n) })}` : ""}`;
+}
+function sheetHeadHTML(i) {
+  const r = S.data.answers.workRows[i];
+  return `<span class="sw"></span><div class="grow"><h3 id="ws-title">${esc(r.activity || t("activity"))}</h3><div class="small muted">${esc(workWhen(r))}</div></div>
+    <button class="iconbtn" data-action="modal-close" aria-label="${esc(t("close"))}">${ic("x")}</button>`;
+}
+function openWorkSheet(i, still = false) {
+  const rows = S.data.answers.workRows;
+  const r = rows[i];
+  if (!r) return;
+  const c = rowColors(rows)[i];
+  const max = todayISO().slice(0, 7);
+  const field = (col, extra = "", cls = "") => `<div class="${cls}"><label for="ws-${col}">${esc(t(col))}</label><input class="input" id="ws-${col}" data-row="${i}" data-col="${col}" value="${esc(r[col] || "")}" ${extra}></div>`;
+  $("#modal-root").innerHTML = `<div class="sheet-back ${still ? "still" : ""}" data-action="modal-close">
+    <div class="sheet wc${c} ${still ? "still" : ""}" id="work-sheet" role="dialog" aria-modal="true" aria-labelledby="ws-title" tabindex="-1" data-stop>
+      <div class="sheet-grab" aria-hidden="true"></div>
+      <div class="sheet-head" id="ws-head">${sheetHeadHTML(i)}</div>
+      <div class="sheet-body">
+        ${field("from", `type="month" min="1950-01" max="${max}"`)}
+        <div><label for="ws-to">${esc(t("to"))}</label><input class="input" type="month" id="ws-to" data-row="${i}" data-col="to" value="${esc(r.to || "")}" ${r.present ? "disabled" : ""} max="${max}">
+          <label class="present"><input type="checkbox" id="ws-present" data-row="${i}" data-col="present" ${r.present ? "checked" : ""}>${esc(t("present"))}</label></div>
+        ${field("activity", "", "full")}
+        ${field("employer")}${field("city")}${field("country")}
+      </div>
+      <div class="sheet-foot">
+        <button class="btn danger" data-action="work-sheet-rm" data-row="${i}">${ic("trash")}${esc(t("remove"))}</button>
+        <button class="btn accent" data-action="modal-close">${esc(t("done"))}</button>
+      </div>
+    </div></div>`;
+  if (!still) $("#work-sheet").focus();
+}
+function closeModal() {
+  const root = $("#modal-root");
+  const wasSheet = !!root?.querySelector("#work-sheet");
+  if (root) root.innerHTML = "";
+  S.armed = null;
+  if (wasSheet) renderPanel(); // the list behind it still shows the values from before the edit
 }
 function workHTML() {
   const rows = S.data.answers.workRows;
@@ -1820,12 +1865,20 @@ const actions = {
     });
   },
   "work-rm"(el) { mutate((d) => d.answers.workRows.splice(Number(el.dataset.row), 1)); },
+  "work-sheet"(el) { S.armed = null; openWorkSheet(Number(el.dataset.row)); },
+  "work-sheet-rm"(el) {
+    const i = Number(el.dataset.row);
+    if (S.armed !== "w" + i) { S.armed = "w" + i; el.classList.add("armed"); el.textContent = t("confirmRemove"); return; }
+    S.armed = null;
+    $("#modal-root").innerHTML = "";
+    mutate((d) => d.answers.workRows.splice(i, 1));
+  },
   "pick-file"(el) { $(`#in-${el.dataset.slot}`)?.click(); },
   "pick-camera"(el) { $(`#cam-${el.dataset.slot}`)?.click(); },
   "build-pdf"() { buildPassportPdf(); },
   view(el) { S.armed = null; viewFile(el.dataset.id); },
   download(el) { downloadFile(el.dataset.id); },
-  "modal-close"(el, ev) { if (ev.target.closest("[data-stop]") && !el.matches(".iconbtn")) return; $("#modal-root").innerHTML = ""; S.armed = null; },
+  "modal-close"(el, ev) { if (el.querySelector("[data-stop]") && ev.target.closest("[data-stop]")) return; closeModal(); },
   "file-rm"(el) {
     const id = el.dataset.id;
     if (S.armed !== "f" + id) { S.armed = "f" + id; el.classList.add("armed"); el.textContent = t("confirmRemove"); return; }
@@ -1858,7 +1911,7 @@ document.addEventListener("click", (ev) => {
   if (fn) fn(el, ev);
 });
 document.addEventListener("keydown", (ev) => {
-  if (ev.key === "Escape" && $("#modal-root")?.innerHTML) { $("#modal-root").innerHTML = ""; }
+  if (ev.key === "Escape" && $("#modal-root")?.innerHTML) closeModal();
 });
 document.addEventListener("input", (ev) => {
   const el = ev.target;
@@ -1868,6 +1921,8 @@ document.addEventListener("input", (ev) => {
   } else if (el.dataset.row != null && el.dataset.col && el.type !== "checkbox") {
     const i = Number(el.dataset.row), c = el.dataset.col;
     mutate((d) => { d.answers.workRows[i][c] = el.value; }, { render: false });
+    const head = $("#ws-head");
+    if (head && el.closest("#work-sheet")) head.innerHTML = sheetHeadHTML(i);
   }
 });
 document.addEventListener("change", (ev) => {
@@ -1877,6 +1932,7 @@ document.addEventListener("change", (ev) => {
   } else if (el.dataset.col === "present") {
     const i = Number(el.dataset.row);
     mutate((d) => { d.answers.workRows[i].present = el.checked; });
+    if (el.closest("#work-sheet")) openWorkSheet(i, true);
   } else if (el.dataset.check) {
     mutate((d) => { d.checklist[el.dataset.check] = el.checked; }, { log: `${el.checked ? "Ticked" : "Unticked"}: ${T.en["ck_" + el.dataset.check]}` });
   } else if (el.dataset.upload && el.files?.length) {
