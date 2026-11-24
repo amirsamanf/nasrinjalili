@@ -164,6 +164,7 @@ const T = {
     seedChoose: "Choose vault-seed.nasrin", seedLoading: "Uploading {n} of {total}…",
     seedDone: "All set. Opening the vault…",
     connected: "Connected to {repo}",
+    tokenExpired: "The GitHub access token has expired, so the vault can't be opened. Create a new token (button below), paste it here and click Connect. Your data is safe.",
   },
   fa: {
     brand: "صندوق پرونده",
@@ -285,6 +286,7 @@ const T = {
     seedChoose: "انتخاب vault-seed.nasrin", seedLoading: "در حال بارگذاری {n} از {total}…",
     seedDone: "انجام شد. در حال باز کردن…",
     connected: "متصل به {repo}",
+    tokenExpired: "توکن دسترسی گیت‌هاب منقضی شده و صندوق باز نمی‌شود. یک توکن تازه بسازید (دکمه پایین)، اینجا بچسبانید و «اتصال» را بزنید. اطلاعات شما امن است.",
   },
 };
 
@@ -710,7 +712,14 @@ async function doUnlock(user, pass) {
     S.store = new GitHubStore(secret);
     S.secretRepo = secret.repo;
   }
-  const got = await S.store.readCase();
+  let got;
+  try {
+    got = await S.store.readCase();
+  } catch (e) {
+    // An expired or revoked token: ask for a new one instead of stopping at "GitHub error 401".
+    if (!IS_LOCAL && (e.status === 401 || e.status === 403)) return renderSetup(1, t("tokenExpired"));
+    throw e;
+  }
   if (!got) return renderSetup(2);
   S.data = await openJSON(S.key, got.bytes);
   S.sha = got.sha;
@@ -1014,7 +1023,7 @@ function renderSetup(step = 1, msg = "") {
     <p class="muted">${esc(t("setupLede"))}</p>
     <form class="stack" id="setup-form">
       <div class="field"><label for="sr">${esc(t("setupRepo"))}</label>
-        <input class="input mono" id="sr" required placeholder="owner/nasrinjalili-vault" autocomplete="off" autocapitalize="none" spellcheck="false">
+        <input class="input mono" id="sr" required value="${esc(S.secretRepo || "")}" placeholder="owner/nasrinjalili-vault" autocomplete="off" autocapitalize="none" spellcheck="false">
         <span class="hint">${esc(t("setupRepoHint"))}</span></div>
       <div class="field"><label for="ss">${esc(t("setupSite"))}</label>
         <input class="input mono" id="ss" required value="${esc(siteRepo)}" placeholder="owner/nasrinjalili" autocomplete="off" autocapitalize="none" spellcheck="false">
