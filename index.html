@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self' https://api.github.com; frame-src blob:; media-src blob:; object-src blob:; base-uri 'none'; form-action 'none'; manifest-src 'none'">
-<title>Nasrin</title>
+<title>Case vault</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2318181b'/%3E%3Cpath d='M11 15v-3a5 5 0 0110 0v3' fill='none' stroke='%232dd4bf' stroke-width='2.4' stroke-linecap='round'/%3E%3Crect x='9' y='15' width='14' height='10' rx='2.5' fill='%232dd4bf'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -370,6 +370,31 @@ textarea.input { min-height: 110px; resize: vertical; line-height: 1.5; }
 .qs-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .qs-chips button { border: 1px dashed var(--line-strong); background: transparent; border-radius: 8px; padding: 5px 11px; font-size: 13px; color: var(--ink-2); }
 .qs-chips button:hover { border-style: solid; color: var(--ink); }
+.pp-bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; margin: 10px 0 12px; }
+.pp-bar i { display: block; height: 100%; border-radius: 4px; background: var(--warn); transition: width .3s; }
+.pp-bar.ok i { background: var(--accent); }
+.pp-card { padding: 14px 16px; border-radius: var(--r-md); background: var(--surface-3); border: 1px solid var(--line); }
+.pp-top { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pp-top b { font-size: 30px; line-height: 1; }
+.pp-top .spacer { flex: 1; }
+.pp-dl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.pp-dl dt { font-size: 12px; color: var(--ink-3); }
+.pp-dl dd { margin: 2px 0 0; font-weight: 600; font-size: 14px; }
+.work-row.day-row { grid-template-columns: repeat(4, minmax(0, 1fr)) 110px 36px; grid-template-areas: "a a b b d r" "w w w y y y"; }
+.work-row.day-row.prePR { grid-template-areas: "a a b b d r" "w w w w w w"; }
+.day-row > :nth-child(1) { grid-area: a; } .day-row > :nth-child(2) { grid-area: b; }
+.day-row.trips > :nth-child(3) { grid-area: w; } .day-row.trips > :nth-child(4) { grid-area: y; } .day-row.trips > :nth-child(5) { grid-area: d; } .day-row.trips > :nth-child(6) { grid-area: r; }
+.day-row.prePR > :nth-child(3) { grid-area: w; } .day-row.prePR > :nth-child(4) { grid-area: d; } .day-row.prePR > :nth-child(5) { grid-area: r; }
+.day-row .days { font-size: 12.5px; color: var(--ink-2); padding-bottom: 10px; align-self: end; }
+.day-row .days.bad { color: var(--danger); }
+.none-tog { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--ink-2); }
+select.input { appearance: auto; }
+@media (max-width: 1080px) {
+  .work-row.day-row { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "a b" "w y" "d r"; }
+  .work-row.day-row.prePR { grid-template-areas: "a b" "w w" "d r"; }
+  .work-row.day-row .rm { grid-column: auto; }
+}
+@media (max-width: 480px) { .work-row.day-row.trips { grid-template-areas: "a b" "w w" "y y" "d r"; } }
 .id-row { display: flex; gap: 8px; }
 .id-row .input { flex: 1; }
 
@@ -450,6 +475,7 @@ textarea.input { min-height: 110px; resize: vertical; line-height: 1.5; }
   .gap-list button { white-space: nowrap; }
   .work-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .work-row .rm { grid-column: 2; justify-self: end; }
+  .pp-dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 720px) {
   .case-name { display: none; }
@@ -475,6 +501,6 @@ textarea.input { min-height: 110px; resize: vertical; line-height: 1.5; }
 <div id="app" aria-live="polite"></div>
 <div id="toasts" role="status" aria-live="polite"></div>
 <noscript><p style="padding:24px">This page needs JavaScript to decrypt the vault.</p></noscript>
-<script type="module" src="app.js?v=14"></script>
+<script type="module" src="app.js?v=15"></script>
 </body>
 </html>

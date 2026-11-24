@@ -11,10 +11,12 @@ const API = "https://api.github.com";
 // comes from the decrypted case data at runtime.
 const IDLE_MS = 20 * 60 * 1000;
 const IRCC_MAX = 4 * 1048576; // IRCC's upload limit per file
-const WORK_YEARS = 10;
-const IRCC_SIGNIN = "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/account.html";
-const IRAN_PAGE = "https://www.canada.ca/en/immigration-refugees-citizenship/services/iran.html";
-const PHOTO_SPECS = "https://www.canada.ca/en/immigration-refugees-citizenship/services/application/application-forms-guides/temporary-resident-visa-application-photograph-specifications.html";
+const WORK_YEARS = 5; // citizenship asks for the last 5 years of addresses and activities
+const NEED_DAYS = 1095;
+const ELIG_PAGE = "https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-citizenship/become-canadian-citizen/eligibility.html";
+const APPLY_PAGE = "https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-citizenship/become-canadian-citizen/apply.html";
+const CIT_PORTAL = "https://citapply-citdemande.apps.cic.gc.ca/en/landing";
+const PHOTO_SPECS = "https://www.canada.ca/en/immigration-refugees-citizenship/services/canadian-citizenship/become-canadian-citizen/apply/photo.html";
 const TOKEN_URL = "https://github.com/settings/personal-access-tokens/new";
 
 if (window.top !== window.self) {
@@ -35,6 +37,7 @@ const store = {
 /* ====================================================================== */
 const T = {
   en: {
+    brand: "Case vault",
     vaultSub: "Private case vault",
     unlockSub: "Sign in to open the encrypted file.",
     username: "Username", password: "Password", show: "Show", hide: "Hide",
@@ -44,34 +47,44 @@ const T = {
     noVault: "This site isn't set up yet: vault.json is missing.",
     lock: "Lock", theme: "Theme",
     saved: "Encrypted · saved", saving: "Saving…", offline: "Couldn't save · retrying", pending: "Saving soon…", local: "Test mode · this browser only",
-    tabOverview: "Overview", tabGaps: "Fill the gaps", tabDocs: "Documents", tabNotes: "Notes & paste", tabSubmit: "Submit",
-    daysLeft: "days left", submitBy: "Submit by", permitEnds: "Permit ends", deadline: "Deadline", progress: "Progress",
-    blankForm: "Empty IMM 5710", draftForm: "IMM 5710, filled so far", adobeHint: "Open in Adobe Reader. Browsers can't show this form.",
-    caseTitle: "Open work permit extension",
+    tabOverview: "Overview", tabGaps: "Fill the gaps", tabDocs: "Documents", tabNotes: "Notes & paste", tabSubmit: "Apply",
+    progress: "Progress",
+    caseTitle: "Canadian citizenship",
+    // presence
+    presence: "Physical presence", ofDays: "of {need} days", eligibleNow: "Eligible now", eligibleOn: "Eligible from {date}",
+    eligibleOnD: "If she stays in Canada until then.", eligibleNowD: "Based on the dates entered, counted for an application on {date}.",
+    noPrDate: "Add the date she became a permanent resident to start counting.",
+    prDays: "As a permanent resident", preDays: "Before PR (half days, max 365)", awayDays: "Days outside Canada", windowLbl: "5-year window",
+    presenceNote: "An estimate. IRCC's calculator inside the online application decides. Leaving and returning days count as days in Canada.",
+    eligPage: "IRCC eligibility rules", openPortal: "Online application",
     // steps
-    s_eligible: "Eligibility confirmed", s_account: "IRCC account ready", s_checklist: "Checklist created", s_draft: "Form pre-filled",
-    s_answers: "Missing answers", s_ids: "ID numbers typed", s_docs: "Documents ready", s_submit: "Submitted & paid",
+    s_eligible: "Eligibility check", s_history: "Trips, addresses, work", s_answers: "Other questions", s_ids: "ID numbers",
+    s_docs: "Documents ready", s_online: "Online application", s_submit: "Signed & paid", s_after: "Test & oath",
     // overview
     ovTitle: "Where things stand",
-    ovStatus: "{days} days to submit. {done} of 8 steps are done.",
+    ovStatus: "{done} of 8 steps are done.",
     ovNextIs: "Next:",
     nextTitle: "Do these next",
     factsTitle: "What we know",
     logTitle: "Recent activity",
-    policyTitle: "The policy",
-    policyBody: "Temporary public policy for Iranian nationals in Canada. Open until Mar 31, 2027. One extension of up to 2 years.",
-    fPermit: "Current permit", fPassport: "New passport", fBio: "Biometrics", fFees: "Fees", fAddress: "Address", fDaughter: "Daughter in Canada", fContact: "Contact", fDraft: "IRCC draft",
-    validTo: "valid to", issued: "issued", expires: "expires", noFee: "no biometrics fee", newBio: "giving new biometrics, $85",
-    unitFlag: "Work permit says {unitAlt}. Confirm in Fill the gaps.",
-    draftKept: "kept until",
-    nxAnswers: "Answer {n} more questions", nxAnswersD: "Husband's dates, arrivals, education, work history, background.",
-    nxIds: "Type the ID numbers", nxIdsD: "Passport, UCI, national ID. Only she enters these.",
-    nxPassport: "Photograph every passport page", nxPassportD: "We'll combine them into one PDF for IRCC.",
-    nxPhoto: "Add a digital photo", nxPhotoD: "Front-facing, plain light background, taken recently.",
-    nxForm: "Finish and validate the IMM 5710", nxFormD: "Open the draft in Adobe, complete it, click Validate, upload it here.",
-    nxSubmit: "Submit and pay on IRCC", nxSubmitD: "Upload the documents, sign, pay $340.",
-    nxClaude: "Send updates to Claude", nxClaudeD: "Export when you've added new answers or files.",
+    reqTitle: "What she needs",
+    reqBody: "1,095 days in Canada in the 5 years before applying · taxes filed for 3 of those years · English or French at CLB 4 · the citizenship test (ages 18–54).",
+    fStatus: "Status", fPassport: "Passport", fTaxes: "Taxes filed", fLang: "Language proof", fFee: "Fee", fContact: "Contact",
+    prSince: "PR since {date}", taxN: "{n} of the last 5 years", taxNeed: "IRCC needs 3 of 5", notYet: "Not entered yet",
+    feeBody: "Adult: processing fee plus right of citizenship fee.",
+    nxStatus: "Enter her PR date and time before PR", nxStatusD: "Starts the physical presence count.",
+    nxTrips: "List her trips outside Canada", nxTripsD: "Every trip in the last 5 years, with the dates she left and came back.",
+    nxAnswers: "Answer {n} more questions", nxAnswersD: "Taxes, language, addresses, work and school, background.",
+    nxIds: "Type the ID numbers", nxIdsD: "UCI, PR card and passport. Only you enter these.",
+    nxPrCard: "Add her PR card or COPR", nxPrCardD: "Front and back of the card.",
+    nxPassport: "Photograph every passport page", nxPassportD: "Every passport she held in the last 5 years, all pages.",
+    nxLang: "Add her language proof", nxLangD: "Test results, or a diploma or transcript from study in English or French.",
+    nxId2: "Add a second ID", nxId2D: "BC Services Card or driver's licence, front and back.",
+    nxOnline: "Fill in the online application", nxOnlineD: "Create her account, do the presence calculation, upload, sign.",
+    nxSubmit: "Sign and pay", nxSubmitD: "Sign on the same date as the presence calculation, then pay $653.",
+    nxAfter: "Watch for the test invitation", nxAfterD: "IRCC sends it after the application is checked.",
     allDone: "Everything is done. Keep the IRCC confirmation safe.",
+    notEligibleYet: "Not eligible yet: {date}",
     // gaps
     gapsTitle: "Fill the gaps",
     gapsLede: "Answers save automatically and stay encrypted. If you're not sure about something, tick \"Not sure\" and Claude will follow up.",
@@ -79,10 +92,14 @@ const T = {
     nextGroup: "Next section", prevGroup: "Back", allAnswered: "All sections answered",
     jalaliEnter: "Persian date", jalaliUse: "Use this date", jalaliYear: "سال", jalaliMonth: "ماه", jalaliDay: "روز",
     jalaliBad: "That Persian date doesn't exist. Check the numbers.",
-    addRow: "Add a period", done: "Done", months: "{n} months", present: "to now", from: "From", to: "To", activity: "Job or activity", employer: "Employer", city: "City", country: "Country",
-    coverage: "Coverage, last 10 years", gapFound: "Missing period: {from} to {to}", noGaps: "No gaps. Every month is covered.",
+    addRow: "Add a period", addTrip: "Add a trip", addAddr: "Add an address", done: "Done", months: "{n} months", present: "to now",
+    from: "From", to: "To", activity: "Job, school or activity", employer: "Employer or school", city: "City", country: "Country",
+    street: "Street address", province: "Province or state",
+    left: "Left Canada", back: "Came back", where: "Where she went", why: "Reason", awayN: "{n} days away", status: "Her status",
+    daysN: "{n} days", noTripsLbl: "She hasn't left Canada in the last 5 years",
+    coverage: "Coverage, last 5 years", gapFound: "Missing period: {from} to {to}", noGaps: "No gaps. Every month is covered.",
+    rowBad: "Check the dates: the return is before the departure.",
     copy: "Copy", copied: "Copied",
-    idsNote: "Claude never types ID numbers. Enter them here once, then use Copy when filling the form in Adobe.",
     // docs
     docsTitle: "Documents",
     docsLede: "Drop files on a box, choose them, or take a photo with your phone. Each file is encrypted before upload.",
@@ -99,26 +116,28 @@ const T = {
     notesTitle: "Notes & paste",
     notesLede: "Paste or type anything Claude should know: dates, answers, text from emails, screenshots. Claude reads these the next time you export.",
     pasteHint: "Press {key} anywhere on this site to paste text or a screenshot.",
-    notePh: "e.g. Husband born 1338/05/12. Married in Tehran in 1985. She landed at YVR on 2023-03-14…",
+    notePh: "e.g. She landed as a PR at YVR on 2022-08-15. Trip to Istanbul from 2024-03-02 to 2024-03-20…",
     saveNote: "Save note", noteSaved: "Note saved", attach: "Attach images",
     noNotes: "No notes yet. Your first note will appear here.",
+    noteNoFa: "The Farsi version of this note isn't ready yet.",
     fromYou: "From you", fromClaudeNote: "From Claude", seen: "Read by Claude", unread: "New",
     pastedImage: "Pasted image saved to Documents → Anything else",
-    // submit
-    submitTitle: "Submit",
-    submitLede: "The final steps on IRCC. Tick each one as she finishes it.",
-    ck_adobe: "Finish the IMM 5710 in Adobe", ck_adobeD: "Type the ID numbers and copy the answers from Fill the gaps.",
-    ck_validate: "Click Validate, then Save", ck_validateD: "Barcodes appear on the last page when it's valid.",
-    ck_form: "Upload the validated form here", ck_formD: "Documents → IMM 5710. Lets Claude double-check it.",
-    ck_passport: "Passport PDF ready", ck_passportD: "All pages in one file, under 4 MB.",
-    ck_photo: "Digital photo ready", ck_photoD: "Documents → Digital photo.",
-    ck_ircc: "Upload everything to IRCC", ck_irccD: "Sign in → Continue application → upload form, passport, photo, letter.",
-    ck_sign: "Sign electronically", ck_signD: "Type her name exactly as on the passport.",
-    ck_paid: "Pay $340 by card", ck_paidD: "Work permit $155 + open work permit holder $100 + biometrics $85.",
-    ck_confirm: "Save the confirmation and receipt", ck_confirmD: "Upload them to Documents → IRCC confirmation. They prove maintained status.",
-    ck_bio: "Give new biometrics", ck_bioD: "Wait for IRCC's instruction letter, then book an appointment.",
+    // apply
+    submitTitle: "Apply",
+    submitLede: "The steps on IRCC's online citizenship application. Tick each one as she finishes it.",
+    ck_account: "Create her online citizenship account", ck_accountD: "Sign in with GCKey or a bank sign-in and start an adult application.",
+    ck_calc: "Do the physical presence calculation", ck_calcD: "Inside the account. Use the trips from Fill the gaps. The calculation date must match the signing date.",
+    ck_fill: "Fill in the application", ck_fillD: "Copy answers and ID numbers from this site.",
+    ck_prCard: "PR card or COPR ready", ck_prCardD: "Documents → PR card.",
+    ck_passport: "Passport PDF ready", ck_passportD: "All pages of every passport from the last 5 years.",
+    ck_lang: "Language proof ready", ck_langD: "Documents → Language proof.",
+    ck_upload: "Upload the documents", ck_uploadD: "Follow the account's document list.",
+    ck_sign: "Sign electronically", ck_signD: "On the same date as the presence calculation.",
+    ck_paid: "Pay $653 by card", ck_paidD: "Processing fee plus right of citizenship fee.",
+    ck_confirm: "Save the confirmation and receipt", ck_confirmD: "Upload them to Documents → IRCC confirmation.",
+    ck_test: "Take the citizenship test", ck_testD: "IRCC sends an invitation. Study with the Discover Canada guide.",
+    ck_oath: "Take the oath", ck_oathD: "The final step. She becomes a citizen at the ceremony.",
     auto: "auto",
-    openIrcc: "Open IRCC sign-in", policyPage: "IRCC Iran measures",
     claudeTitle: "Keep Claude in the loop",
     claudeBody: "Claude can't log in here. To share new answers and files, export an encrypted copy and tell Claude. Claude sends changes back as an update file.",
     exportBtn: "Export for Claude", importBtn: "Import update from Claude",
@@ -147,6 +166,7 @@ const T = {
     connected: "Connected to {repo}",
   },
   fa: {
+    brand: "صندوق پرونده",
     vaultSub: "صندوق امن پرونده",
     unlockSub: "برای باز کردن پرونده رمزگذاری‌شده وارد شوید.",
     username: "نام کاربری", password: "رمز عبور", show: "نمایش", hide: "پنهان",
@@ -156,42 +176,55 @@ const T = {
     noVault: "این سایت هنوز راه‌اندازی نشده است.",
     lock: "قفل", theme: "پوسته",
     saved: "رمزگذاری و ذخیره شد", saving: "در حال ذخیره…", offline: "ذخیره نشد · تلاش دوباره", pending: "به‌زودی ذخیره می‌شود…", local: "حالت آزمایشی · فقط این مرورگر",
-    tabOverview: "خلاصه", tabGaps: "تکمیل اطلاعات", tabDocs: "مدارک", tabNotes: "یادداشت‌ها", tabSubmit: "ارسال",
-    daysLeft: "روز مانده", submitBy: "ارسال تا", permitEnds: "پایان مجوز", deadline: "مهلت", progress: "پیشرفت",
-    blankForm: "فرم خالی IMM 5710", draftForm: "فرم IMM 5710، پرشده تا اینجا", adobeHint: "با Adobe Reader باز کنید. مرورگر این فرم را نشان نمی‌دهد.",
-    caseTitle: "تمدید مجوز کار باز",
-    s_eligible: "شرایط احراز شد", s_account: "حساب IRCC آماده", s_checklist: "فهرست مدارک ساخته شد", s_draft: "فرم پیش‌پر شد",
-    s_answers: "پاسخ‌های باقی‌مانده", s_ids: "شماره‌های شناسایی", s_docs: "مدارک آماده", s_submit: "ارسال و پرداخت",
+    tabOverview: "خلاصه", tabGaps: "تکمیل اطلاعات", tabDocs: "مدارک", tabNotes: "یادداشت‌ها", tabSubmit: "درخواست",
+    progress: "پیشرفت",
+    caseTitle: "شهروندی کانادا",
+    presence: "حضور فیزیکی", ofDays: "از {need} روز", eligibleNow: "اکنون واجد شرایط است", eligibleOn: "واجد شرایط از {date}",
+    eligibleOnD: "به شرط اینکه تا آن زمان در کانادا بماند.", eligibleNowD: "بر اساس تاریخ‌های واردشده، برای درخواست در {date}.",
+    noPrDate: "تاریخ اقامت دائم را وارد کنید تا شمارش شروع شود.",
+    prDays: "به‌عنوان مقیم دائم", preDays: "پیش از اقامت دائم (نیم‌روز، حداکثر ۳۶۵)", awayDays: "روزهای خارج از کانادا", windowLbl: "بازه ۵ ساله",
+    presenceNote: "این یک برآورد است. محاسبه‌گر IRCC در درخواست آنلاین ملاک است. روز خروج و روز بازگشت جزو روزهای حضور در کانادا حساب می‌شوند.",
+    eligPage: "شرایط IRCC", openPortal: "درخواست آنلاین",
+    s_eligible: "بررسی شرایط", s_history: "سفرها، نشانی‌ها، کار", s_answers: "سؤالات دیگر", s_ids: "شماره‌های شناسایی",
+    s_docs: "مدارک آماده", s_online: "درخواست آنلاین", s_submit: "امضا و پرداخت", s_after: "آزمون و سوگند",
     ovTitle: "وضعیت پرونده",
-    ovStatus: "{days} روز تا مهلت ارسال. {done} مرحله از ۸ مرحله انجام شده است.",
+    ovStatus: "{done} مرحله از ۸ مرحله انجام شده است.",
     ovNextIs: "قدم بعدی:",
     nextTitle: "کارهای بعدی",
     factsTitle: "اطلاعات موجود",
     logTitle: "فعالیت‌های اخیر",
-    policyTitle: "سیاست موقت",
-    policyBody: "سیاست موقت برای اتباع ایران در کانادا. تا ۳۱ مارس ۲۰۲۷ باز است. یک بار تمدید تا ۲ سال.",
-    fPermit: "مجوز فعلی", fPassport: "گذرنامه جدید", fBio: "انگشت‌نگاری", fFees: "هزینه‌ها", fAddress: "نشانی", fDaughter: "دختر در کانادا", fContact: "تماس", fDraft: "پیش‌نویس IRCC",
-    validTo: "معتبر تا", issued: "صدور", expires: "انقضا", noFee: "بدون هزینه انگشت‌نگاری", newBio: "انگشت‌نگاری جدید، ۸۵ دلار",
-    unitFlag: "در مجوز کار واحد {unitAlt} آمده است. در «تکمیل اطلاعات» تأیید کنید.",
-    draftKept: "نگهداری تا",
-    nxAnswers: "به {n} سؤال دیگر پاسخ دهید", nxAnswersD: "تاریخ‌های همسر، ورودها، تحصیلات، سوابق کار و سؤالات سابقه.",
-    nxIds: "شماره‌های شناسایی را وارد کنید", nxIdsD: "گذرنامه، UCI و کد ملی. فقط خودش وارد می‌کند.",
-    nxPassport: "از همه صفحات گذرنامه عکس بگیرید", nxPassportD: "همه را به یک فایل PDF برای IRCC تبدیل می‌کنیم.",
-    nxPhoto: "عکس دیجیتال اضافه کنید", nxPhotoD: "از روبه‌رو، زمینه روشن و ساده، عکس جدید.",
-    nxForm: "فرم IMM 5710 را کامل و تأیید کنید", nxFormD: "پیش‌نویس را در Adobe باز کنید، کامل کنید، Validate را بزنید و اینجا بارگذاری کنید.",
-    nxSubmit: "ارسال و پرداخت در سایت IRCC", nxSubmitD: "مدارک را بارگذاری کنید، امضا کنید و ۳۴۰ دلار بپردازید.",
-    nxClaude: "به‌روزرسانی برای Claude بفرستید", nxClaudeD: "وقتی پاسخ یا فایل تازه اضافه کردید، خروجی بگیرید.",
+    reqTitle: "شرایط لازم",
+    reqBody: "۱٬۰۹۵ روز حضور در کانادا در ۵ سال پیش از درخواست · تسلیم اظهارنامه مالیاتی برای ۳ سال از این ۵ سال · انگلیسی یا فرانسوی در سطح CLB 4 · آزمون شهروندی (۱۸ تا ۵۴ سال).",
+    fStatus: "وضعیت", fPassport: "گذرنامه", fTaxes: "اظهارنامه مالیاتی", fLang: "مدرک زبان", fFee: "هزینه", fContact: "تماس",
+    prSince: "مقیم دائم از {date}", taxN: "{n} سال از ۵ سال اخیر", taxNeed: "IRCC سه سال از پنج سال را لازم دارد", notYet: "هنوز وارد نشده",
+    feeBody: "بزرگسال: هزینه رسیدگی به‌علاوه هزینه حق شهروندی.",
+    nxStatus: "تاریخ اقامت دائم و مدت حضور پیش از آن را وارد کنید", nxStatusD: "شمارش روزهای حضور فیزیکی از اینجا شروع می‌شود.",
+    nxTrips: "سفرهای خارج از کانادا را فهرست کنید", nxTripsD: "همه سفرهای ۵ سال اخیر با تاریخ خروج و بازگشت.",
+    nxAnswers: "به {n} سؤال دیگر پاسخ دهید", nxAnswersD: "مالیات، زبان، نشانی‌ها، کار و تحصیل، سؤالات سابقه.",
+    nxIds: "شماره‌های شناسایی را وارد کنید", nxIdsD: "UCI، کارت اقامت دائم و گذرنامه. فقط شما وارد می‌کنید.",
+    nxPrCard: "کارت اقامت دائم یا COPR را اضافه کنید", nxPrCardD: "پشت و روی کارت.",
+    nxPassport: "از همه صفحات گذرنامه عکس بگیرید", nxPassportD: "همه گذرنامه‌های ۵ سال اخیر، همه صفحات.",
+    nxLang: "مدرک زبان را اضافه کنید", nxLangD: "نتیجه آزمون، یا مدرک و ریزنمرات تحصیل به انگلیسی یا فرانسوی.",
+    nxId2: "یک کارت شناسایی دوم اضافه کنید", nxId2D: "کارت BC Services یا گواهینامه رانندگی، پشت و رو.",
+    nxOnline: "درخواست آنلاین را پر کنید", nxOnlineD: "ساخت حساب، محاسبه حضور، بارگذاری مدارک، امضا.",
+    nxSubmit: "امضا و پرداخت", nxSubmitD: "در همان تاریخ محاسبه حضور امضا کنید و ۶۵۳ دلار بپردازید.",
+    nxAfter: "منتظر دعوت به آزمون باشید", nxAfterD: "IRCC پس از بررسی درخواست آن را می‌فرستد.",
     allDone: "همه مراحل انجام شد. تأییدیه IRCC را نگه دارید.",
+    notEligibleYet: "هنوز واجد شرایط نیست: {date}",
     gapsTitle: "تکمیل اطلاعات",
     gapsLede: "پاسخ‌ها خودکار و رمزگذاری‌شده ذخیره می‌شوند. اگر مطمئن نیستید، «مطمئن نیستم» را بزنید تا Claude پیگیری کند.",
     notSure: "مطمئن نیستم", yes: "بله", no: "خیر", details: "توضیحات",
     nextGroup: "بخش بعد", prevGroup: "قبلی", allAnswered: "همه بخش‌ها پاسخ داده شد",
     jalaliEnter: "تاریخ شمسی", jalaliUse: "ثبت این تاریخ", jalaliYear: "سال", jalaliMonth: "ماه", jalaliDay: "روز",
     jalaliBad: "این تاریخ شمسی وجود ندارد. اعداد را بررسی کنید.",
-    addRow: "افزودن دوره", done: "تمام", months: "{n} ماه", present: "تا اکنون", from: "از", to: "تا", activity: "شغل یا فعالیت", employer: "کارفرما", city: "شهر", country: "کشور",
-    coverage: "پوشش ۱۰ سال اخیر", gapFound: "دوره خالی: {from} تا {to}", noGaps: "بدون فاصله. همه ماه‌ها پوشش داده شده است.",
+    addRow: "افزودن دوره", addTrip: "افزودن سفر", addAddr: "افزودن نشانی", done: "تمام", months: "{n} ماه", present: "تا اکنون",
+    from: "از", to: "تا", activity: "شغل، تحصیل یا فعالیت", employer: "کارفرما یا مؤسسه", city: "شهر", country: "کشور",
+    street: "نشانی خیابان", province: "استان یا ایالت",
+    left: "خروج از کانادا", back: "بازگشت", where: "مقصد", why: "دلیل", awayN: "{n} روز خارج", status: "وضعیت اقامت",
+    daysN: "{n} روز", noTripsLbl: "در ۵ سال اخیر از کانادا خارج نشده است",
+    coverage: "پوشش ۵ سال اخیر", gapFound: "دوره خالی: {from} تا {to}", noGaps: "بدون فاصله. همه ماه‌ها پوشش داده شده است.",
+    rowBad: "تاریخ‌ها را بررسی کنید: بازگشت پیش از خروج است.",
     copy: "کپی", copied: "کپی شد",
-    idsNote: "Claude هرگز شماره‌های شناسایی را وارد نمی‌کند. یک بار اینجا بنویسید و هنگام پر کردن فرم در Adobe از دکمه کپی استفاده کنید.",
     docsTitle: "مدارک",
     docsLede: "فایل را روی کادر بکشید، انتخاب کنید یا با گوشی عکس بگیرید. هر فایل پیش از بارگذاری رمزگذاری می‌شود.",
     choose: "انتخاب فایل", takePhoto: "عکس گرفتن", dropHere: "فایل‌ها را اینجا رها کنید",
@@ -206,26 +239,27 @@ const T = {
     notesTitle: "یادداشت‌ها",
     notesLede: "هر چیزی که Claude باید بداند را بنویسید یا بچسبانید: تاریخ‌ها، پاسخ‌ها، متن ایمیل، تصویر صفحه. Claude آن‌ها را در خروجی بعدی می‌خواند.",
     pasteHint: "در هر جای سایت {key} را بزنید تا متن یا تصویر چسبانده شود.",
-    notePh: "مثلاً: همسرم متولد ۱۳۳۸/۰۵/۱۲. ازدواج در تهران، ۱۳۶۴. ورود به ونکوور ۲۳ اسفند ۱۴۰۱…",
+    notePh: "مثلاً: ورود به‌عنوان مقیم دائم در فرودگاه ونکوور، ۲۴ مرداد ۱۴۰۱. سفر به استانبول از ۱۲ اسفند تا ۳۰ اسفند…",
     saveNote: "ذخیره یادداشت", noteSaved: "یادداشت ذخیره شد", attach: "پیوست عکس",
     noNotes: "هنوز یادداشتی نیست.",
     noteNoFa: "ترجمه فارسی این یادداشت هنوز آماده نیست.",
     fromYou: "از شما", fromClaudeNote: "از Claude", seen: "خوانده شد", unread: "جدید",
     pastedImage: "تصویر در «مدارک ← سایر» ذخیره شد",
-    submitTitle: "ارسال",
-    submitLede: "آخرین مراحل در سایت IRCC. هر مرحله را پس از انجام تیک بزنید.",
-    ck_adobe: "تکمیل فرم IMM 5710 در Adobe", ck_adobeD: "شماره‌های شناسایی را وارد و پاسخ‌ها را از «تکمیل اطلاعات» کپی کنید.",
-    ck_validate: "Validate و سپس Save", ck_validateD: "وقتی فرم درست باشد، بارکدها در صفحه آخر ظاهر می‌شوند.",
-    ck_form: "فرم تأییدشده را اینجا بارگذاری کنید", ck_formD: "مدارک ← IMM 5710. تا Claude آن را بررسی کند.",
-    ck_passport: "PDF گذرنامه آماده", ck_passportD: "همه صفحات در یک فایل، کمتر از ۴ مگابایت.",
-    ck_photo: "عکس دیجیتال آماده", ck_photoD: "مدارک ← عکس دیجیتال.",
-    ck_ircc: "بارگذاری همه مدارک در IRCC", ck_irccD: "ورود ← ادامه درخواست ← بارگذاری فرم، گذرنامه، عکس و نامه.",
-    ck_sign: "امضای الکترونیکی", ck_signD: "نام را دقیقاً مانند گذرنامه بنویسید.",
-    ck_paid: "پرداخت ۳۴۰ دلار با کارت", ck_paidD: "مجوز کار ۱۵۵ + مجوز کار باز ۱۰۰ + انگشت‌نگاری ۸۵ دلار.",
-    ck_confirm: "ذخیره تأییدیه و رسید", ck_confirmD: "در مدارک ← تأییدیه IRCC بارگذاری کنید. اثبات حفظ وضعیت اقامت است.",
-    ck_bio: "انگشت‌نگاری جدید", ck_bioD: "منتظر نامه دستورالعمل IRCC بمانید و سپس وقت بگیرید.",
+    submitTitle: "درخواست",
+    submitLede: "مراحل درخواست آنلاین شهروندی در سایت IRCC. هر مرحله را پس از انجام تیک بزنید.",
+    ck_account: "ساخت حساب آنلاین شهروندی", ck_accountD: "با GCKey یا ورود بانکی وارد شوید و درخواست بزرگسال را شروع کنید.",
+    ck_calc: "محاسبه حضور فیزیکی", ck_calcD: "داخل حساب. سفرها را از «تکمیل اطلاعات» بردارید. تاریخ محاسبه باید با تاریخ امضا یکی باشد.",
+    ck_fill: "پر کردن درخواست", ck_fillD: "پاسخ‌ها و شماره‌ها را از این سایت کپی کنید.",
+    ck_prCard: "کارت اقامت دائم یا COPR آماده", ck_prCardD: "مدارک ← کارت اقامت دائم.",
+    ck_passport: "PDF گذرنامه آماده", ck_passportD: "همه صفحات همه گذرنامه‌های ۵ سال اخیر.",
+    ck_lang: "مدرک زبان آماده", ck_langD: "مدارک ← مدرک زبان.",
+    ck_upload: "بارگذاری مدارک", ck_uploadD: "طبق فهرست مدارک داخل حساب.",
+    ck_sign: "امضای الکترونیکی", ck_signD: "در همان تاریخ محاسبه حضور.",
+    ck_paid: "پرداخت ۶۵۳ دلار با کارت", ck_paidD: "هزینه رسیدگی به‌علاوه هزینه حق شهروندی.",
+    ck_confirm: "ذخیره تأییدیه و رسید", ck_confirmD: "در مدارک ← تأییدیه IRCC بارگذاری کنید.",
+    ck_test: "آزمون شهروندی", ck_testD: "IRCC دعوت‌نامه می‌فرستد. با کتاب Discover Canada آماده شوید.",
+    ck_oath: "ادای سوگند", ck_oathD: "آخرین مرحله. در مراسم، شهروند می‌شود.",
     auto: "خودکار",
-    openIrcc: "ورود به IRCC", policyPage: "صفحه سیاست ایران",
     claudeTitle: "در جریان گذاشتن Claude",
     claudeBody: "Claude نمی‌تواند وارد این سایت شود. برای ارسال پاسخ‌ها و فایل‌های جدید، یک نسخه رمزگذاری‌شده خروجی بگیرید و به Claude بگویید. Claude تغییرات را با یک فایل به‌روزرسانی برمی‌گرداند.",
     exportBtn: "خروجی برای Claude", importBtn: "وارد کردن به‌روزرسانی Claude",
@@ -259,17 +293,7 @@ let LANG = store.get("nasrin.lang") === "fa" ? "fa" : "en";
 function fill(s) {
   if (!S?.data || typeof s !== "string" || !s.includes("{")) return s;
   const p = S.data.profile;
-  const firstVisaDate = () => p.firstVisa?.issued || p.visa?.issued || "";
-  const gdate = (iso) => (iso ? new Intl.DateTimeFormat("en-CA", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }).format(new Date(iso + "T12:00:00Z")) : "");
-  const map = {
-    husband: p.lateHusband || "", unit: faDigits(p.address?.unit || ""), unitAlt: faDigits(p.address?.unitAlt || ""),
-    street: p.address?.street || "", phone: p.phone || "",
-    visaIssued: gdate(p.visa?.issued), visaIssuedFa: jalaliLabel(p.visa?.issued || ""),
-    visaYear: faDigits((p.visa?.issued || "").slice(0, 4)), permitYear: faDigits((p.permit?.issued || "").slice(0, 4)),
-    // Her first visa (the one she first entered on) sits in an older passport than the current visa
-    firstVisaIssued: gdate(firstVisaDate()), firstVisaIssuedFa: jalaliLabel(firstVisaDate()),
-    firstVisaYear: faDigits(firstVisaDate().slice(0, 4)),
-  };
+  const map = { name: p.givenName || "" };
   return s.replace(/\{(\w+)\}/g, (m, k) => (k in map ? map[k] : m));
 }
 const t = (k, vars) => {
@@ -360,6 +384,9 @@ function jalaliLabel(iso) {
   return new Intl.DateTimeFormat("fa-IR-u-ca-persian", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(d);
 }
 function todayISO() {
+  return new Date().toLocaleDateString("en-CA"); // local date, YYYY-MM-DD
+}
+function todayUTC() {
   return new Date().toISOString().slice(0, 10);
 }
 function daysLeft() {
@@ -384,139 +411,157 @@ function ymFromIndex(i) {
 /* question model                                                          */
 /* ====================================================================== */
 const YN = "yesno";
+const taxYears = () => { const y = new Date().getUTCFullYear(); return [y - 5, y - 4, y - 3, y - 2, y - 1].map(String); };
 const GROUPS = [
   {
-    id: "husband", icon: "calendar",
-    title: { en: "Her late husband", fa: "همسر مرحوم" },
-    intro: { en: "The form asks about previous marriages: {husband}. If you only know a date in the Persian calendar, use \"Persian date\" and it converts automatically.", fa: "فرم درباره ازدواج قبلی ({husband}) می‌پرسد. اگر تاریخ را به شمسی می‌دانید، «تاریخ شمسی» را بزنید تا خودکار تبدیل شود." },
+    id: "status", icon: "id",
+    title: { en: "Becoming a permanent resident", fa: "اقامت دائم" },
+    intro: { en: "Every day as a permanent resident counts as a full day. Time in Canada before that, as a visitor, student or worker, counts as half a day, up to 365 days.", fa: "هر روز به‌عنوان مقیم دائم یک روز کامل حساب می‌شود. حضور پیش از آن در کانادا (توریست، دانشجو یا کارگر) نیم‌روز حساب می‌شود، حداکثر ۳۶۵ روز." },
     fields: [
-      { id: "husbandDob", type: "date", label: { en: "His date of birth", fa: "تاریخ تولد ایشان" } },
-      { id: "marriageDate", type: "date", label: { en: "Date of marriage", fa: "تاریخ ازدواج" } },
-      { id: "deathDate", type: "date", label: { en: "Date he passed away", fa: "تاریخ درگذشت" } },
+      { id: "presence", type: "presence", optional: true },
+      { id: "prDate", type: "date", label: { en: "Date she became a permanent resident", fa: "تاریخ اقامت دائم" },
+        hint: { en: "On her COPR (\"Date of landing\") or the PR card's \"PR since\" line.", fa: "روی COPR (تاریخ ورود) یا خط «PR since» روی کارت اقامت دائم." } },
+      { id: "prCardExpiry", type: "date", future: true, optional: true, label: { en: "PR card expiry date (optional)", fa: "تاریخ انقضای کارت اقامت دائم (اختیاری)" },
+        hint: { en: "An expired card is fine for the application.", fa: "کارت منقضی هم برای درخواست قابل قبول است." } },
+      { id: "beforePR", type: YN, label: { en: "Did she live in Canada before becoming a PR (as a visitor, student or worker) in the last 5 years?", fa: "آیا در ۵ سال اخیر پیش از اقامت دائم در کانادا زندگی کرده است (توریست، دانشجو یا کارگر)؟" } },
+      { id: "prePR", type: "list", when: (a) => a.beforePR === "yes", label: { en: "Her time in Canada before PR", fa: "حضور در کانادا پیش از اقامت دائم" } },
+      { id: "planDate", type: "date", future: true, optional: true, label: { en: "Planned application date (optional)", fa: "تاریخ برنامه‌ریزی‌شده برای درخواست (اختیاری)" },
+        hint: { en: "Leave empty to count for today. The count looks at the 5 years before this date.", fa: "خالی بگذارید تا برای امروز حساب شود. شمارش ۵ سال پیش از این تاریخ را در نظر می‌گیرد." } },
+    ],
+  },
+  {
+    id: "trips", icon: "send",
+    title: { en: "Trips outside Canada", fa: "سفرهای خارج از کانادا" },
+    intro: { en: "Every trip in the last 5 years, even a day trip to the US. Use passport stamps, boarding passes and flight emails. The day she left and the day she came back count as days in Canada.", fa: "همه سفرهای ۵ سال اخیر، حتی یک روزه به آمریکا. از مهرهای گذرنامه، کارت پرواز و ایمیل‌های پرواز کمک بگیرید. روز خروج و روز بازگشت جزو روزهای حضور در کانادا هستند." },
+    fields: [
+      { id: "presence", type: "presence", optional: true },
+      { id: "trips", type: "list", label: { en: "Trips", fa: "سفرها" } },
+    ],
+  },
+  {
+    id: "taxes", icon: "file",
+    title: { en: "Taxes", fa: "مالیات" },
+    intro: { en: "She must have filed Canadian income taxes for at least 3 of the 5 years before applying, if she had to file. Her CRA My Account shows each year's notice of assessment.", fa: "باید دست‌کم برای ۳ سال از ۵ سال پیش از درخواست، اظهارنامه مالیاتی کانادا داده باشد (اگر ملزم بوده). در حساب CRA هر سال «Notice of assessment» دارد." },
+    fields: [
+      { id: "taxYears", type: "years", label: { en: "Which years did she file Canadian taxes for?", fa: "برای کدام سال‌ها اظهارنامه مالیاتی کانادا داده است؟" } },
+      { id: "sin", type: YN, label: { en: "Does she have a Social Insurance Number (SIN)?", fa: "آیا شماره بیمه اجتماعی (SIN) دارد؟" },
+        hint: { en: "The application asks for it. Type the number itself in ID numbers.", fa: "در درخواست پرسیده می‌شود. خود شماره را در بخش شماره‌های شناسایی وارد کنید." } },
     ],
   },
   {
     id: "lang", icon: "globe",
-    title: { en: "Languages", fa: "زبان‌ها" },
-    intro: { en: "Her native language is already set to Farsi.", fa: "زبان مادری: فارسی (ثبت شده است)." },
+    title: { en: "Language", fa: "زبان" },
+    intro: { en: "Applicants aged 18 to 54 must prove English or French speaking and listening at CLB 4 or higher.", fa: "متقاضیان ۱۸ تا ۵۴ سال باید مهارت گفتاری و شنیداری انگلیسی یا فرانسوی را در سطح CLB 4 یا بالاتر ثابت کنند." },
     fields: [
-      { id: "officialLang", type: "choice", label: { en: "Can she communicate in English or French?", fa: "آیا می‌تواند به انگلیسی یا فرانسوی ارتباط برقرار کند؟" },
-        options: [["English", { en: "English", fa: "انگلیسی" }], ["French", { en: "French", fa: "فرانسوی" }], ["Both", { en: "Both", fa: "هر دو" }], ["Neither", { en: "Neither", fa: "هیچ‌کدام" }]] },
-      { id: "langTest", type: YN, label: { en: "Has she taken an English or French test (IELTS, CELPIP, TEF)?", fa: "آیا آزمون زبان (آیلتس، سلپیپ، TEF) داده است؟" } },
+      { id: "langProof", type: "choice", label: { en: "Which proof does she have?", fa: "کدام مدرک را دارد؟" },
+        options: [
+          ["CELPIP-General", { en: "CELPIP-General", fa: "CELPIP-General" }], ["IELTS General Training", { en: "IELTS General Training", fa: "IELTS General" }],
+          ["PTE Core", { en: "PTE Core", fa: "PTE Core" }], ["TEF or TCF", { en: "TEF or TCF (French)", fa: "TEF یا TCF (فرانسوی)" }],
+          ["Studied in English or French", { en: "Diploma or degree taught in English or French", fa: "مدرک تحصیلی به زبان انگلیسی یا فرانسوی" }],
+          ["LINC or CLIC", { en: "LINC or CLIC certificate (CLB 4+)", fa: "گواهی LINC یا CLIC (CLB 4 به بالا)" }],
+          ["none", { en: "Nothing yet", fa: "هنوز ندارد" }]] },
+      { id: "langDetail", type: "textarea", when: (a) => a.langProof && a.langProof !== "none",
+        label: { en: "Details: test date and scores, or school, program and years", fa: "جزئیات: تاریخ و نمره آزمون، یا نام دانشگاه، رشته و سال‌ها" },
+        hint: { en: "Test results must be from an approved test. A degree counts if it was taught in English or French, in Canada or abroad.", fa: "نتیجه آزمون باید از آزمون‌های تأییدشده باشد. مدرک تحصیلی اگر به انگلیسی یا فرانسوی تدریس شده باشد قبول است، در کانادا یا خارج." } },
     ],
   },
   {
-    id: "entry", icon: "send",
-    title: { en: "Coming to Canada", fa: "ورود به کانادا" },
-    intro: { en: "Her first visitor visa was issued on {firstVisaIssued}, so her first arrival is after that.", fa: "اولین ویزای او {firstVisaIssuedFa} صادر شده است؛ پس اولین ورود بعد از آن است." },
-    fields: [
-      { id: "firstEntryDate", type: "date", min: "visa", label: { en: "Date of her first arrival in Canada", fa: "تاریخ اولین ورود به کانادا" } },
-      { id: "firstEntryPlace", type: "place", label: { en: "Where she arrived (airport or border crossing)", fa: "محل ورود (فرودگاه یا مرز)" } },
-      { id: "firstEntryPurpose", type: "choice", label: { en: "Purpose of that first trip", fa: "هدف اولین سفر" },
-        options: [["Family Visit", { en: "Family visit", fa: "دیدار خانواده" }], ["Tourism", { en: "Tourism", fa: "گردشگری" }], ["Business", { en: "Business", fa: "کاری" }], ["Work", { en: "Work", fa: "کار" }], ["Other", { en: "Other", fa: "سایر" }]] },
-      { id: "leftSince", type: YN, label: { en: "Has she left Canada and come back since then?", fa: "آیا از آن زمان از کانادا خارج شده و برگشته است؟" } },
-      { id: "recentEntryDate", type: "date", min: "visa", when: (a) => a.leftSince === "yes", label: { en: "Date of her most recent arrival", fa: "تاریخ آخرین ورود" } },
-      { id: "recentEntryPlace", type: "place", when: (a) => a.leftSince === "yes", label: { en: "Where she arrived most recently", fa: "محل آخرین ورود" } },
-      { id: "iranSixMonths", type: YN, label: { en: "In the past 12 months, did she spend 6 months or more in Iran?", fa: "در ۱۲ ماه گذشته، ۶ ماه یا بیشتر در ایران بوده است؟" },
-        hint: { en: "If yes, a medical exam is needed before submitting. Tell Claude right away.", fa: "اگر بله، پیش از ارسال معاینه پزشکی لازم است. فوراً به Claude بگویید." } },
-      { id: "otherCountries", type: YN, label: { en: "In the past 5 years, did she live 6+ months in a country other than Iran and Canada?", fa: "در ۵ سال گذشته بیش از ۶ ماه در کشوری غیر از ایران و کانادا زندگی کرده است؟" } },
-      { id: "otherCountriesDetail", type: "textarea", when: (a) => a.otherCountries === "yes", label: { en: "Which country, when, and her status there", fa: "کدام کشور، چه زمانی و با چه وضعیتی" } },
-    ],
+    id: "addr", icon: "calendar",
+    title: { en: "Addresses", fa: "نشانی‌ها" },
+    intro: { en: "Every home address in the last 5 years, with no gaps, newest first. Include addresses outside Canada.", fa: "همه نشانی‌های محل سکونت در ۵ سال اخیر، بدون فاصله. نشانی‌های خارج از کانادا هم لازم است." },
+    fields: [{ id: "addrRows", type: "timeline", label: { en: "Addresses", fa: "نشانی‌ها" } }],
   },
   {
-    id: "edu", icon: "pen",
-    title: { en: "Education", fa: "تحصیلات" },
-    intro: { en: "Only study after high school counts here.", fa: "فقط تحصیلات بعد از دبیرستان." },
-    fields: [
-      { id: "hasPostSecondary", type: YN, label: { en: "Did she study after high school (university, college, trade school)?", fa: "آیا بعد از دبیرستان تحصیل کرده است (دانشگاه، کالج، آموزش فنی)؟" } },
-      { id: "eduFrom", type: "month", when: (a) => a.hasPostSecondary === "yes", label: { en: "From (year and month)", fa: "از (سال و ماه)" } },
-      { id: "eduTo", type: "month", when: (a) => a.hasPostSecondary === "yes", label: { en: "To (year and month)", fa: "تا (سال و ماه)" } },
-      { id: "eduField", type: "text", when: (a) => a.hasPostSecondary === "yes", label: { en: "Field of study", fa: "رشته تحصیلی" } },
-      { id: "eduSchool", type: "text", when: (a) => a.hasPostSecondary === "yes", label: { en: "School or university", fa: "دانشگاه یا مؤسسه" } },
-      { id: "eduCity", type: "text", when: (a) => a.hasPostSecondary === "yes", label: { en: "City and country", fa: "شهر و کشور" } },
-    ],
+    id: "work", icon: "pen",
+    title: { en: "Work & school", fa: "کار و تحصیل" },
+    intro: { en: "Every month of the last 5 years, with no gaps: jobs, studies, and time looking for work or at home.", fa: "همه ماه‌های ۵ سال اخیر، بدون فاصله: کار، تحصیل، و دوره‌های جستجوی کار یا خانه‌داری." },
+    fields: [{ id: "workRows", type: "timeline", label: { en: "Periods", fa: "دوره‌ها" } }],
   },
   {
-    id: "work", icon: "file",
-    title: { en: "Work & activities", fa: "کار و فعالیت‌ها" },
-    intro: { en: "Every month of the last 10 years, with no gaps. Unpaid time counts: homemaker, retired, caring for family, visiting family in Canada.", fa: "همه ماه‌های ۱۰ سال اخیر، بدون فاصله. خانه‌داری، بازنشستگی و مراقبت از خانواده هم حساب می‌شود." },
-    fields: [{ id: "workRows", type: "work", label: { en: "Periods", fa: "دوره‌ها" } }],
+    id: "police", icon: "shield",
+    title: { en: "Police certificates", fa: "گواهی عدم سوء پیشینه" },
+    intro: { en: "A police certificate is needed for each country where she spent 183 days or more in a row in the last 4 years, after turning 18.", fa: "برای هر کشوری که در ۴ سال اخیر (پس از ۱۸ سالگی) ۱۸۳ روز یا بیشتر پیوسته در آن بوده، گواهی عدم سوء پیشینه لازم است." },
+    fields: [
+      { id: "policeAbroad", type: YN, details: true, label: { en: "In the last 4 years, did she spend 183 days or more in a row in any country other than Canada?", fa: "در ۴ سال اخیر، آیا ۱۸۳ روز یا بیشتر پیوسته در کشوری غیر از کانادا بوده است؟" } },
+    ],
   },
   {
     id: "bg", icon: "shield",
     title: { en: "Background questions", fa: "سؤالات سابقه" },
-    intro: { en: "Answer each one truthfully. Any \"Yes\" needs a short explanation. The government-position question gets close attention, so include public universities, hospitals and ministries.", fa: "به هر سؤال صادقانه پاسخ دهید. هر «بله» توضیح کوتاهی لازم دارد. سؤال سمت دولتی با دقت بررسی می‌شود؛ کار در دانشگاه، بیمارستان یا وزارتخانه دولتی هم حساب می‌شود." },
+    intro: { en: "Answer each one truthfully. Any \"Yes\" needs a short explanation.", fa: "به هر سؤال صادقانه پاسخ دهید. هر «بله» توضیح کوتاهی لازم دارد." },
     fields: [
-      { id: "bgTb", type: YN, details: true, label: { en: "In the past 2 years, has she or a family member had tuberculosis, or been in close contact with someone who has?", fa: "در ۲ سال گذشته، آیا او یا یکی از اعضای خانواده به سل مبتلا بوده یا با فرد مبتلا تماس نزدیک داشته است؟" } },
-      { id: "bgHealth", type: YN, details: true, label: { en: "Does she have a physical or mental condition that would need social or health services (other than medication) in Canada?", fa: "آیا بیماری جسمی یا روانی دارد که در کانادا به خدمات درمانی یا اجتماعی (غیر از دارو) نیاز داشته باشد؟" } },
-      { id: "bgOverstay", type: YN, details: true, label: { en: "Has she ever stayed past her status, or studied or worked without permission, in Canada?", fa: "آیا تا کنون در کانادا بیش از مدت مجاز مانده یا بدون اجازه کار یا تحصیل کرده است؟" } },
-      { id: "bgRefused", type: YN, details: true, label: { en: "Has she ever been refused a visa or permit, denied entry, or ordered to leave any country?", fa: "آیا تا کنون ویزا یا مجوزش رد شده، از ورود منع شده یا دستور ترک کشوری را گرفته است؟" } },
-      { id: "bgPrevApplied", type: YN, details: true, label: { en: "Has she applied to enter or stay in Canada before?", fa: "آیا قبلاً برای ورود یا ماندن در کانادا درخواست داده است؟" },
-        hint: { en: "Her visitor visas ({firstVisaYear} and {visaYear}) and {permitYear} work permit count, so this is most likely Yes.", fa: "ویزاهای او ({firstVisaYear} و {visaYear}) و مجوز کار {permitYear} حساب می‌شوند؛ پس به احتمال زیاد «بله» است." } },
-      { id: "bgCriminal", type: YN, details: true, label: { en: "Has she ever committed, been arrested for, charged with or convicted of a crime in any country?", fa: "آیا تا کنون در هر کشوری مرتکب جرم شده، بازداشت، متهم یا محکوم شده است؟" } },
-      { id: "bgMilitary", type: YN, details: true, label: { en: "Has she served in any military, militia, civil defence unit, security organization or police force?", fa: "آیا در نیروی نظامی، شبه‌نظامی، دفاع مدنی، سازمان امنیتی یا پلیس خدمت کرده است؟" } },
-      { id: "bgGroups", type: YN, details: true, label: { en: "Has she been a member of, or associated with, a political party or group that used or supported violence?", fa: "آیا عضو یا مرتبط با حزب یا گروهی بوده که از خشونت استفاده یا حمایت کرده است؟" } },
-      { id: "bgGovt", type: YN, details: true, label: { en: "Has she ever held a government position (civil servant, judge, police, staff of a public university or hospital)?", fa: "آیا تا کنون سمت دولتی داشته است (کارمند دولت، قاضی، پلیس، کارمند دانشگاه یا بیمارستان دولتی)؟" } },
-      { id: "bgWitness", type: YN, details: true, label: { en: "Has she witnessed or taken part in ill-treatment of prisoners or civilians, looting, or desecration of religious buildings?", fa: "آیا شاهد یا شریک بدرفتاری با زندانیان یا غیرنظامیان، غارت یا هتک حرمت اماکن مذهبی بوده است؟" } },
+      { id: "bgCharged", type: YN, details: true, label: { en: "Is she now charged with, on trial for, or appealing a crime, in Canada or elsewhere?", fa: "آیا اکنون در کانادا یا جای دیگر به جرمی متهم است، محاکمه می‌شود یا درخواست تجدیدنظر دارد؟" } },
+      { id: "bgConvicted", type: YN, details: true, label: { en: "In the last 4 years, has she been convicted of a crime, in Canada or elsewhere?", fa: "در ۴ سال اخیر، آیا در کانادا یا جای دیگر به جرمی محکوم شده است؟" } },
+      { id: "bgPrison", type: YN, details: true, label: { en: "In the last 5 years, has she been in prison, on parole or on probation?", fa: "در ۵ سال اخیر، آیا زندان، آزادی مشروط یا دوره تعلیقی داشته است؟" } },
+      { id: "bgRemoval", type: YN, details: true, label: { en: "Has she ever been ordered to leave Canada?", fa: "آیا تا کنون دستور ترک کانادا گرفته است؟" } },
+      { id: "bgRefused", type: YN, details: true, label: { en: "Has she ever been refused Canadian citizenship, or had it taken away?", fa: "آیا تا کنون درخواست شهروندی‌اش رد شده یا شهروندی از او گرفته شده است؟" } },
+      { id: "bgWar", type: YN, details: true, label: { en: "Is she under investigation for, charged with, or convicted of war crimes or crimes against humanity?", fa: "آیا به جنایت جنگی یا جنایت علیه بشریت متهم، محکوم یا تحت تحقیق است؟" } },
     ],
   },
   {
-    id: "confirm", icon: "check",
-    title: { en: "Quick confirmations", fa: "تأییدهای سریع" },
-    intro: { en: "A few things Claude assumed while filling the draft.", fa: "چند موردی که Claude هنگام پر کردن پیش‌نویس فرض کرد." },
+    id: "contact", icon: "note",
+    title: { en: "Personal details", fa: "اطلاعات شخصی" },
+    intro: { en: "The application asks for these. Height and eye colour go on the citizenship certificate.", fa: "این موارد در درخواست پرسیده می‌شود. قد و رنگ چشم روی گواهی شهروندی درج می‌شود." },
     fields: [
-      { id: "unit", type: "choice", when: () => !!S.data.profile.address.unitAlt,
-        label: { en: "Which apartment number is correct at {street}?", fa: "شماره واحد درست در {street} کدام است؟" },
-        hint: { en: "Her work permit says {unitAlt}. The draft form and letter use {unit}.", fa: "در مجوز کار {unitAlt} آمده و در پیش‌نویس فرم و نامه {unit}." },
-        options: (d) => [d.profile.address.unit, d.profile.address.unitAlt].map((u) => [u, { en: u, fa: faDigits(u) }]) },
-      { id: "otherNames", type: YN, label: { en: "Has she ever used another name or spelling (old documents, nickname)?", fa: "آیا تا کنون نام یا املای دیگری داشته است (مدارک قدیمی، نام مستعار)؟" } },
-      { id: "otherNamesDetail", type: "text", when: (a) => a.otherNames === "yes", label: { en: "Other names or spellings", fa: "نام‌ها یا املاهای دیگر" } },
-      { id: "phoneType", type: "choice", label: { en: "Is {phone} a cell phone or a home phone?", fa: "شماره {phone} موبایل است یا ثابت؟" },
-        options: [["Cellular", { en: "Cell phone", fa: "موبایل" }], ["Residence", { en: "Home phone", fa: "تلفن ثابت" }]] },
-      { id: "futureContact", type: YN, optional: true, label: { en: "Optional: may IRCC contact her in the future for research or feedback?", fa: "اختیاری: آیا IRCC می‌تواند در آینده برای پژوهش یا نظرسنجی با او تماس بگیرد؟" } },
+      { id: "email", type: "text", label: { en: "Her email address", fa: "ایمیل" } },
+      { id: "phone", type: "text", label: { en: "Her phone number", fa: "شماره تلفن" } },
+      { id: "marital", type: "choice", label: { en: "Marital status", fa: "وضعیت تأهل" },
+        options: [["Single", { en: "Single", fa: "مجرد" }], ["Married", { en: "Married", fa: "متأهل" }], ["Common-law", { en: "Common-law", fa: "زندگی مشترک" }], ["Divorced", { en: "Divorced", fa: "مطلقه" }], ["Separated", { en: "Separated", fa: "جدا شده" }], ["Widowed", { en: "Widowed", fa: "همسر فوت‌شده" }]] },
+      { id: "otherNames", type: YN, details: true, label: { en: "Has she ever used another name or spelling (a nickname, or a different spelling in old documents)?", fa: "آیا تا کنون نام یا املای دیگری داشته است (نام مستعار، یا املای متفاوت در مدارک قدیمی)؟" } },
+      { id: "height", type: "text", label: { en: "Height (cm)", fa: "قد (سانتی‌متر)" } },
+      { id: "eyes", type: "choice", label: { en: "Eye colour", fa: "رنگ چشم" },
+        options: [["Brown", { en: "Brown", fa: "قهوه‌ای" }], ["Black", { en: "Black", fa: "مشکی" }], ["Hazel", { en: "Hazel", fa: "عسلی" }], ["Green", { en: "Green", fa: "سبز" }], ["Blue", { en: "Blue", fa: "آبی" }], ["Grey", { en: "Grey", fa: "طوسی" }]] },
+      { id: "birthPlace", type: "text", label: { en: "Place of birth (city, country)", fa: "محل تولد (شهر، کشور)" } },
     ],
   },
   {
     id: "ids", icon: "id", store: "ids",
     title: { en: "ID numbers", fa: "شماره‌های شناسایی" },
-    intro: { en: "Claude never types ID numbers. Enter them here once, then use Copy when filling the form in Adobe.", fa: "Claude هرگز شماره‌های شناسایی را وارد نمی‌کند. یک بار اینجا بنویسید و در Adobe از دکمه کپی استفاده کنید." },
+    intro: { en: "Claude never types ID numbers. Enter them here once, then use Copy when filling the online application.", fa: "Claude هرگز شماره‌های شناسایی را وارد نمی‌کند. یک بار اینجا بنویسید و هنگام پر کردن درخواست آنلاین از دکمه کپی استفاده کنید." },
     fields: [
-      { id: "uci", type: "id", label: { en: "UCI (on the work permit, top right)", fa: "شماره UCI (بالای مجوز کار)" } },
-      { id: "passportNumber", type: "id", label: { en: "New passport number", fa: "شماره گذرنامه جدید" } },
-      { id: "nationalId", type: "id", label: { en: "National ID number (kart-e melli)", fa: "کد ملی" } },
-      { id: "nationalIdIssue", type: "date", optional: true, label: { en: "National ID card issue date (if printed)", fa: "تاریخ صدور کارت ملی (اگر درج شده)" } },
-      { id: "nationalIdExpiry", type: "date", optional: true, label: { en: "National ID card expiry date (if printed)", fa: "تاریخ انقضای کارت ملی (اگر درج شده)" } },
-      { id: "permitNumber", type: "id", label: { en: "Work permit number (starts with U)", fa: "شماره مجوز کار (با U شروع می‌شود)" } },
+      { id: "uci", type: "id", label: { en: "UCI / client ID (on the PR card)", fa: "شماره UCI (روی کارت اقامت دائم)" } },
+      { id: "prCardNumber", type: "id", label: { en: "PR card number", fa: "شماره کارت اقامت دائم" } },
+      { id: "passportNumber", type: "id", label: { en: "Current passport number", fa: "شماره گذرنامه فعلی" } },
+      { id: "sinNumber", type: "id", optional: true, label: { en: "Social Insurance Number (optional here)", fa: "شماره بیمه اجتماعی (اختیاری)" } },
     ],
   },
 ];
-const PLACES = ["Vancouver International Airport (YVR)", "Toronto Pearson Airport (YYZ)", "Montréal-Trudeau Airport (YUL)", "Calgary International Airport (YYC)", "Peace Arch border crossing (BC)", "Pacific Highway border crossing (BC)"];
+// Row lists. "timeline" rows are months with a coverage bar; "days" rows are exact dates.
+const STATUS_OPTS = [["Visitor", { en: "Visitor", fa: "توریست" }], ["Student", { en: "Student", fa: "دانشجو" }], ["Worker", { en: "Worker", fa: "کارگر" }], ["Protected person", { en: "Protected person", fa: "پناهنده پذیرفته‌شده" }]];
+const LISTS = {
+  addrRows: { kind: "timeline", add: "addAddr", label: "street", cols: [["street", "full"], ["city"], ["province"], ["country"]] },
+  workRows: { kind: "timeline", add: "addRow", label: "activity", cols: [["activity", "full"], ["employer"], ["city"], ["country"]],
+    quick: [["Student", "دانشجو"], ["Unemployed", "بیکار"], ["Looking for work", "جستجوی کار"]] },
+  trips: { kind: "days", add: "addTrip", a: "left", b: "back", away: true, cols: [["where"], ["why"]] },
+  prePR: { kind: "days", add: "addRow", a: "from", b: "to", cols: [["status", STATUS_OPTS]] },
+};
+const PLACES = [];
 
 const SLOTS = [
+  { id: "prCard", req: true, accept: "image/*,application/pdf", multi: true, camera: "environment", icon: "id",
+    title: { en: "PR card or COPR", fa: "کارت اقامت دائم یا COPR" },
+    desc: { en: "Front and back of the PR card. If the card is lost, her Confirmation of Permanent Residence.", fa: "پشت و روی کارت اقامت دائم. اگر کارت گم شده، تأییدیه اقامت دائم (COPR)." } },
   { id: "passport", req: true, wide: true, accept: "image/*,application/pdf", multi: true, camera: "environment", icon: "passport",
     title: { en: "Passport pages", fa: "صفحات گذرنامه" },
-    desc: { en: "New passport first, then the previous passport, then the oldest passport's photo and visa pages, all in one PDF for IRCC.", fa: "ابتدا گذرنامه جدید، سپس گذرنامه قبلی، و در آخر صفحه عکس و ویزای قدیمی‌ترین گذرنامه، همه در یک PDF برای IRCC." } },
-  { id: "photo", req: true, accept: "image/jpeg,image/png", multi: false, camera: "user", icon: "camera",
-    title: { en: "Digital photo", fa: "عکس دیجیتال" },
-    desc: { en: "Recent, front-facing, plain light background, no glare on glasses.", fa: "جدید، از روبه‌رو، زمینه روشن و ساده، بدون انعکاس عینک." } },
-  { id: "imm5710", req: true, accept: "application/pdf", multi: false, icon: "pdf",
-    title: { en: "IMM 5710, validated", fa: "فرم IMM 5710، تأییدشده" },
-    desc: { en: "The finished form after clicking Validate in Adobe. Barcodes on the last page mean it's valid.", fa: "فرم کامل‌شده پس از زدن Validate در Adobe. بارکد در صفحه آخر یعنی معتبر است." } },
-  { id: "letter", accept: "application/pdf,image/*", multi: false, icon: "note",
-    title: { en: "Letter of explanation", fa: "نامه توضیحات" },
-    desc: { en: "Uploads in IRCC's optional \"Client Information\" slot.", fa: "در بخش اختیاری «Client Information» در IRCC بارگذاری می‌شود." } },
-  { id: "medical", accept: "application/pdf,image/*", multi: true, icon: "shield",
-    title: { en: "Upfront medical", fa: "معاینه پزشکی" },
-    desc: { en: "The panel clinic's information sheet with her health ID numbers.", fa: "برگه اطلاعات کلینیک با شماره‌های پرونده پزشکی." } },
-  { id: "formDraft", accept: "application/pdf", multi: true, icon: "pen",
-    title: { en: "Form draft from Claude", fa: "پیش‌نویس فرم از Claude" },
-    desc: { en: "Download, open in Adobe, finish it. Needs Adobe Reader; browsers can't show it.", fa: "دانلود کنید و در Adobe باز کنید. مرورگر آن را نشان نمی‌دهد." } },
+    desc: { en: "Every page of every passport she held in the last 5 years, including blank pages. Combine them into one PDF for IRCC.", fa: "همه صفحات همه گذرنامه‌های ۵ سال اخیر، حتی صفحات خالی. همه را به یک PDF برای IRCC تبدیل کنید." } },
+  { id: "language", req: true, accept: "image/*,application/pdf", multi: true, icon: "globe",
+    title: { en: "Language proof", fa: "مدرک زبان" },
+    desc: { en: "Test results, or a diploma and transcript from study in English or French.", fa: "نتیجه آزمون، یا مدرک و ریزنمرات تحصیل به انگلیسی یا فرانسوی." } },
+  { id: "id2", req: true, accept: "image/*,application/pdf", multi: true, camera: "environment", icon: "id",
+    title: { en: "Second ID", fa: "کارت شناسایی دوم" },
+    desc: { en: "BC Services Card or driver's licence, front and back. It must show her name and date of birth.", fa: "کارت BC Services یا گواهینامه رانندگی، پشت و رو. باید نام و تاریخ تولد را نشان دهد." } },
+  { id: "tax", accept: "image/*,application/pdf", multi: true, icon: "file",
+    title: { en: "Tax notices of assessment", fa: "برگه‌های ارزیابی مالیاتی" },
+    desc: { en: "Optional. Helps Claude check the tax years. IRCC checks with CRA directly.", fa: "اختیاری. به Claude برای بررسی سال‌های مالیاتی کمک می‌کند. IRCC مستقیماً از CRA استعلام می‌کند." } },
+  { id: "travel", accept: "image/*,application/pdf", multi: true, icon: "send",
+    title: { en: "Travel records", fa: "سوابق سفر" },
+    desc: { en: "Optional. Boarding passes, flight emails or a CBSA travel history, to check the trip dates.", fa: "اختیاری. کارت پرواز، ایمیل‌های پرواز یا سابقه سفر CBSA برای بررسی تاریخ سفرها." } },
   { id: "confirmation", accept: "application/pdf,image/*", multi: true, icon: "shield",
     title: { en: "IRCC confirmation & receipt", fa: "تأییدیه و رسید IRCC" },
     desc: { en: "After paying, save the confirmation page and receipt here.", fa: "پس از پرداخت، تأییدیه و رسید را اینجا ذخیره کنید." } },
   { id: "reference", accept: "image/*,application/pdf", multi: true, icon: "file",
     title: { en: "Reference documents", fa: "مدارک مرجع" },
-    desc: { en: "Old passport, previous visa, current permit and the summary.", fa: "گذرنامه قدیم، ویزای قبلی، مجوز فعلی و خلاصه پرونده." } },
+    desc: { en: "Anything Claude prepares or that helps answer questions.", fa: "هر چیزی که Claude آماده می‌کند یا به پاسخ سؤال‌ها کمک می‌کند." } },
   { id: "other", accept: "image/*,application/pdf", multi: true, icon: "plus",
     title: { en: "Anything else", fa: "سایر" },
     desc: { en: "Pasted screenshots and anything Claude should see.", fa: "تصاویر چسبانده‌شده و هر چیزی که Claude باید ببیند." } },
@@ -528,7 +573,7 @@ const SLOTS = [
 const S = {
   vault: null, key: null, store: null, mode: IS_LOCAL ? "local" : "github", secretRepo: "",
   data: null, sha: null, pending: [], saving: false, saveState: "saved",
-  tab: store.get("nasrin.tab") || "overview", group: "husband",
+  tab: store.get("nasrin.tab") || "overview", group: "status",
   thumbs: new Map(), armed: null, jalOpen: null, intro: true,
 };
 
@@ -675,7 +720,7 @@ async function doUnlock(user, pass) {
 function normalize() {
   const d = S.data;
   d.answers ??= {}; d.ids ??= {}; d.checklist ??= {}; d.notes ??= []; d.files ??= []; d.log ??= [];
-  if (!Array.isArray(d.answers.workRows)) d.answers.workRows = [];
+  for (const k of Object.keys(LISTS)) if (!Array.isArray(d.answers[k])) d.answers[k] = [];
 }
 
 /* ====================================================================== */
@@ -739,12 +784,15 @@ window.addEventListener("beforeunload", (e) => {
 /* ====================================================================== */
 const getVal = (g, f) => (g.store === "ids" ? S.data.ids[f.id] : S.data.answers[f.id]);
 function visible(f) { return !f.when || f.when(S.data.answers); }
+const ROWLESS = new Set(["presence", "list", "timeline"]);
 function fieldDone(g, f) {
   if (!visible(f) || f.optional) return true;
   const a = g.store === "ids" ? S.data.ids : S.data.answers;
-  if (a[f.id + "Unsure"]) return true;
+  if (!ROWLESS.has(f.type) && a[f.id + "Unsure"]) return true;
   const v = a[f.id];
-  if (f.type === "work") return workStatus().done;
+  if (f.type === "timeline") return timelineStatus(f.id).done;
+  if (f.type === "list") return listStatus(f.id).done;
+  if (f.type === "years") return Array.isArray(v) && v.length > 0;
   if (f.type === YN && f.details && v === "yes") return !!String(a[f.id + "Detail"] || "").trim();
   return v !== undefined && v !== null && String(v).trim() !== "";
 }
@@ -753,17 +801,21 @@ function groupStatus(g) {
   const done = fs.filter((f) => fieldDone(g, f)).length;
   return { done, total: fs.length, complete: done === fs.length };
 }
-function openQuestions(includeIds = false) {
+const groupById = (id) => GROUPS.find((g) => g.id === id);
+const groupDone = (id) => groupStatus(groupById(id)).complete;
+function openQuestions(includeIds = false, skip = []) {
   let n = 0;
   for (const g of GROUPS) {
-    if (g.id === "ids" && !includeIds) continue;
+    if ((g.id === "ids" && !includeIds) || skip.includes(g.id)) continue;
     const s = groupStatus(g);
     n += s.total - s.done;
   }
   return n;
 }
-function workStatus() {
-  const rows = S.data.answers.workRows || [];
+// Months covered by a timeline list (addresses, work), over the last WORK_YEARS years.
+function timelineStatus(list) {
+  const rows = S.data.answers[list] || [];
+  const label = LISTS[list].label;
   const start = workWindowStart();
   const now = new Date();
   const end = now.getUTCFullYear() * 12 + now.getUTCMonth();
@@ -772,7 +824,7 @@ function workStatus() {
   for (const r of rows) {
     const a = monthIndex(r.from);
     const b = r.present ? end : monthIndex(r.to);
-    if (a == null || b == null || !String(r.activity || "").trim()) { rowsOk = false; continue; }
+    if (a == null || b == null || !String(r[label] || "").trim()) { rowsOk = false; continue; }
     for (let i = Math.max(a, start); i <= Math.min(b, end); i++) covered[i - start] = true;
   }
   const gaps = [];
@@ -782,33 +834,88 @@ function workStatus() {
   }
   return { covered, gaps, start, end, done: rowsOk && gaps.length === 0 };
 }
+/* ---------- exact days ---------- */
+const DAY = 864e5;
+const dnum = (iso) => (/^\d{4}-\d{2}-\d{2}$/.test(iso || "") ? Math.round(Date.parse(iso + "T00:00:00Z") / DAY) : null);
+const diso = (n) => new Date(n * DAY).toISOString().slice(0, 10);
+function minusYears(n, y) { const d = new Date(n * DAY); d.setUTCFullYear(d.getUTCFullYear() - y); return Math.round(d.getTime() / DAY); }
+function rowDays(list, r) {
+  const c = LISTS[list];
+  const a = dnum(r[c.a]), b = dnum(r[c.b]);
+  if (a == null || b == null) return null;
+  if (b < a) return -1;
+  return c.away ? Math.max(0, b - a - 1) : b - a + 1;
+}
+function listStatus(list) {
+  const rows = S.data.answers[list] || [];
+  if (list === "trips" && S.data.answers.noTrips) return { done: true, none: true };
+  const ok = rows.length > 0 && rows.every((r) => { const n = rowDays(list, r); return n != null && n >= 0; });
+  return { done: ok };
+}
+// Physical presence, as IRCC counts it: full days as a PR, half days before PR (max 365 credit), over the
+// 5 years before the application date. Leaving and returning days count as days in Canada. Days after today
+// are assumed to be in Canada unless a trip covers them.
+function presence() {
+  const a = S.data.answers;
+  const pr = dnum(a.prDate);
+  if (pr == null) return null;
+  const today = dnum(todayISO());
+  const app = dnum(a.planDate) ?? today;
+  const lo = minusYears(Math.min(app, today), 5) - 1;
+  const hi = Math.max(app, today) + 5 * 366;
+  const N = hi - lo;
+  const away = new Uint8Array(N), pre = new Uint8Array(N);
+  const mark = (arr, x, y) => { for (let d = Math.max(x, lo); d <= Math.min(y, hi - 1); d++) arr[d - lo] = 1; };
+  for (const r of a.trips || []) { const l = dnum(r.left), b = dnum(r.back); if (l != null && b != null && b > l + 1) mark(away, l + 1, b - 1); }
+  if (a.beforePR === "yes") for (const r of a.prePR || []) { const f = dnum(r.from), t = dnum(r.to); if (f != null && t != null && t >= f) mark(pre, f, Math.min(t, pr - 1)); }
+  const fullP = new Float64Array(N + 1), halfP = new Float64Array(N + 1), awayP = new Float64Array(N + 1);
+  for (let i = 0; i < N; i++) {
+    const d = lo + i;
+    fullP[i + 1] = fullP[i] + (d >= pr && !away[i] ? 1 : 0);
+    halfP[i + 1] = halfP[i] + (d < pr && pre[i] && !away[i] ? 0.5 : 0);
+    awayP[i + 1] = awayP[i] + (away[i] ? 1 : 0);
+  }
+  const calc = (A) => {
+    const s = minusYears(A, 5) - lo, e = A - lo;
+    const full = fullP[e] - fullP[s], credit = Math.min(365, halfP[e] - halfP[s]);
+    return { full, credit, away: awayP[e] - awayP[s], total: Math.floor(full + credit), start: minusYears(A, 5) };
+  };
+  const cur = calc(app);
+  let eligibleOn = cur.total >= NEED_DAYS ? app : null;
+  if (eligibleOn == null) for (let A = Math.max(app, today) + 1; A < hi; A++) if (calc(A).total >= NEED_DAYS) { eligibleOn = A; break; }
+  return { ...cur, app: diso(app), start: diso(cur.start), eligibleOn: eligibleOn == null ? null : diso(eligibleOn), ok: cur.total >= NEED_DAYS };
+}
 const filesIn = (slot) => S.data.files.filter((f) => f.slot === slot).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.addedAt).localeCompare(String(b.addedAt)));
 function docsStatus() {
   const pass = filesIn("passport");
   return {
     passportPdf: filesIn("passportPdf").length > 0 || pass.some((f) => f.type === "application/pdf"),
     pages: pass.filter((f) => f.type.startsWith("image/")).length,
-    photo: filesIn("photo").length > 0,
-    form: filesIn("imm5710").length > 0,
-    letter: filesIn("letter").length > 0,
+    prCard: filesIn("prCard").length > 0,
+    language: filesIn("language").length > 0,
+    id2: filesIn("id2").length > 0,
     confirmation: filesIn("confirmation").length > 0,
   };
 }
+const docsMissingN = (ds) => [!ds.prCard, !ds.passportPdf, !ds.language, !ds.id2].filter(Boolean).length;
+function eligibleDone() {
+  const a = S.data.answers, p = presence();
+  return !!p?.ok && (a.taxYears || []).length >= 3 && !!a.langProof && a.langProof !== "none";
+}
 function steps() {
-  const nonIds = GROUPS.filter((g) => g.id !== "ids");
-  const answersDone = nonIds.every((g) => groupStatus(g).complete);
-  const idsDone = groupStatus(GROUPS.find((g) => g.id === "ids")).complete;
   const ds = docsStatus();
   const ck = S.data.checklist;
+  const firstOpen = (ids) => ids.find((id) => !groupDone(id));
+  const hist = ["trips", "addr", "work"], other = GROUPS.filter((g) => g.id !== "ids").map((g) => g.id);
   const list = [
-    { key: "eligible", done: true, tab: "overview" },
-    { key: "account", done: true, tab: "submit" },
-    { key: "checklist", done: true, tab: "submit" },
-    { key: "draft", done: true, tab: "docs" },
-    { key: "answers", done: answersDone, tab: "gaps" },
-    { key: "ids", done: idsDone, tab: "gaps", group: "ids" },
-    { key: "docs", done: ds.passportPdf && ds.photo && ds.form, tab: "docs" },
-    { key: "submit", done: !!(ck.ircc && ck.paid), tab: "submit" },
+    { key: "eligible", done: eligibleDone(), tab: "gaps", group: firstOpen(["status", "trips", "taxes", "lang"]) || "status" },
+    { key: "history", done: hist.every(groupDone), tab: "gaps", group: firstOpen(hist) || "trips" },
+    { key: "answers", done: other.every(groupDone), tab: "gaps", group: firstOpen(other) || "police" },
+    { key: "ids", done: groupDone("ids"), tab: "gaps", group: "ids" },
+    { key: "docs", done: docsMissingN(ds) === 0, tab: "docs" },
+    { key: "online", done: !!(ck.account && ck.calc && ck.fill && ck.upload), tab: "submit" },
+    { key: "submit", done: !!(ck.sign && ck.paid), tab: "submit" },
+    { key: "after", done: !!ck.oath, tab: "submit" },
   ];
   const cur = list.findIndex((s) => !s.done);
   list.forEach((s, i) => (s.state = s.done ? "done" : i === cur ? "now" : "todo"));
@@ -817,13 +924,19 @@ function steps() {
 function nextActions() {
   const out = [];
   const ds = docsStatus();
-  const n = openQuestions(false);
-  if (n) out.push({ icon: "pen", t: t("nxAnswers", { n: faDigits(n) }), d: t("nxAnswersD"), tab: "gaps", group: GROUPS.find((g) => g.id !== "ids" && !groupStatus(g).complete)?.id });
-  if (!groupStatus(GROUPS.find((g) => g.id === "ids")).complete) out.push({ icon: "id", t: t("nxIds"), d: t("nxIdsD"), tab: "gaps", group: "ids" });
+  const ck = S.data.checklist;
+  if (!groupDone("status")) out.push({ icon: "id", t: t("nxStatus"), d: t("nxStatusD"), tab: "gaps", group: "status" });
+  if (!groupDone("trips")) out.push({ icon: "send", t: t("nxTrips"), d: t("nxTripsD"), tab: "gaps", group: "trips" });
+  const n = openQuestions(false, ["status", "trips"]);
+  if (n) out.push({ icon: "pen", t: t("nxAnswers", { n: faDigits(n) }), d: t("nxAnswersD"), tab: "gaps", group: GROUPS.find((g) => !["ids", "status", "trips"].includes(g.id) && !groupStatus(g).complete)?.id });
+  if (!groupDone("ids")) out.push({ icon: "id", t: t("nxIds"), d: t("nxIdsD"), tab: "gaps", group: "ids" });
+  if (!ds.prCard) out.push({ icon: "id", t: t("nxPrCard"), d: t("nxPrCardD"), tab: "docs" });
   if (!ds.passportPdf) out.push({ icon: "passport", t: t("nxPassport"), d: t("nxPassportD"), tab: "docs" });
-  if (!ds.photo) out.push({ icon: "camera", t: t("nxPhoto"), d: t("nxPhotoD"), tab: "docs" });
-  if (!ds.form) out.push({ icon: "pdf", t: t("nxForm"), d: t("nxFormD"), tab: "docs" });
-  if (!(S.data.checklist.ircc && S.data.checklist.paid)) out.push({ icon: "send", t: t("nxSubmit"), d: t("nxSubmitD"), tab: "submit" });
+  if (!ds.language) out.push({ icon: "globe", t: t("nxLang"), d: t("nxLangD"), tab: "docs" });
+  if (!ds.id2) out.push({ icon: "id", t: t("nxId2"), d: t("nxId2D"), tab: "docs" });
+  if (!(ck.account && ck.calc && ck.fill && ck.upload)) out.push({ icon: "send", t: t("nxOnline"), d: t("nxOnlineD"), tab: "submit" });
+  else if (!(ck.sign && ck.paid)) out.push({ icon: "pen", t: t("nxSubmit"), d: t("nxSubmitD"), tab: "submit" });
+  else if (!ck.oath) out.push({ icon: "calendar", t: t("nxAfter"), d: t("nxAfterD"), tab: "submit" });
   return out;
 }
 
@@ -858,13 +971,13 @@ function applyTheme() {
 const app = () => $("#app");
 
 function renderLock(msg = "") {
-  document.title = "Nasrin";
+  document.title = t("brand");
   app().innerHTML = `
   <div class="gate">
     <form class="card gate-card" id="lock-form" autocomplete="on">
       <div class="gate-top"><span class="eyebrow">${esc(t("vaultSub"))}</span>${langSeg()}</div>
       ${logoHTML()}
-      <h1 class="display">Nasrin</h1>
+      <h1 class="display">${esc(t("brand"))}</h1>
       <p class="sub">${esc(t("unlockSub"))}</p>
       ${IS_LOCAL ? `<p class="okmsg small">${esc(t("local"))}</p>` : ""}
       <div class="stack">
@@ -921,7 +1034,7 @@ function renderSetup(step = 1, msg = "") {
     <p id="seed-msg" class="small muted" aria-live="polite"></p>
     ${msg ? `<div class="err" role="alert">${esc(msg)}</div>` : ""}`;
   app().innerHTML = `<div class="gate"><div class="card gate-card wide">
-    <div class="gate-top"><span class="eyebrow">Nasrin</span>${langSeg()}</div>
+    <div class="gate-top"><span class="eyebrow">${esc(t("brand"))}</span>${langSeg()}</div>
     <div class="steps-mini"><span class="on"></span><span class="${step === 2 ? "on" : ""}"></span></div>
     ${body}
     <div class="gate-foot">${ic("shield")}<span>${esc(t("gateFoot"))}</span></div></div></div>`;
@@ -1036,7 +1149,7 @@ async function importSeedFile(file) {
 /* ====================================================================== */
 function startApp() {
   const gn = S.data.profile?.givenName || "";
-  document.title = gn ? `${gn.charAt(0)}${gn.slice(1).toLowerCase()} · Work permit` : "Nasrin";
+  document.title = gn ? `${gn.charAt(0).toUpperCase()}${gn.slice(1).toLowerCase()} · Citizenship` : t("brand");
   app().innerHTML = `
     ${IS_LOCAL ? `<div class="test-banner">${esc(t("local"))}</div>` : ""}
     <header class="topbar"><div class="topbar-in" id="topbar"></div></header>
@@ -1064,8 +1177,8 @@ function refreshChrome() {
   renderTabs();
   const gl = $("#gap-list");
   if (gl) gl.innerHTML = gapListHTML();
-  const wc = $("#work-cov");
-  if (wc) wc.innerHTML = coverageHTML();
+  document.querySelectorAll("[data-cov]").forEach((el) => (el.innerHTML = coverageHTML(el.dataset.cov)));
+  document.querySelectorAll(".pp-live").forEach((el) => (el.innerHTML = presenceHTML()));
 }
 function renderTop() {
   const el = $("#topbar");
@@ -1075,7 +1188,7 @@ function renderTop() {
   const p = S.data.profile;
   const th = document.documentElement.dataset.theme;
   el.innerHTML = `
-    <a class="brand" href="#" data-action="tab" data-tab="overview" aria-label="Nasrin">${logoHTML()}<span>Nasrin</span></a>
+    <a class="brand" href="#" data-action="tab" data-tab="overview" aria-label="${esc(t("brand"))}">${logoHTML()}<span>${esc(t("brand"))}</span></a>
     <div class="case-name"><b>${esc(p.givenName.charAt(0) + p.givenName.slice(1).toLowerCase())} ${esc(p.familyName.charAt(0) + p.familyName.slice(1).toLowerCase())}</b> · ${esc(t("caseTitle"))}</div>
     <div class="spacer"></div>
     <span class="chip ${cls} save-chip" title="${esc(t(st))}"><span class="txt">${esc(t(st))}</span></span>
@@ -1083,23 +1196,27 @@ function renderTop() {
     <button class="iconbtn" data-action="theme" aria-label="${esc(t("theme"))}">${ic(th === "dark" ? "sun" : "moon")}</button>
     <button class="iconbtn" data-action="lock" aria-label="${esc(t("lock"))}" title="${esc(t("lock"))}">${ic("lock")}</button>`;
 }
+function presenceRailHTML() {
+  const p = presence();
+  if (!p) return `<div class="eyebrow">${esc(t("presence"))}</div><p class="small muted" style="margin:10px 0 0">${esc(t("noPrDate"))}</p>`;
+  const pct = Math.min(100, (100 * p.total) / NEED_DAYS);
+  return `<div class="eyebrow">${esc(t("presence"))}</div>
+    <div class="cd-num"><b>${faDigits(p.total.toLocaleString("en-CA"))}</b><span>${esc(t("ofDays", { need: faDigits("1,095") }))}</span></div>
+    <div class="pp-bar ${p.ok ? "ok" : ""}"><i style="width:${pct}%"></i></div>
+    <div class="cd-when">${p.ok ? `<b>${esc(t("eligibleNow"))}</b><br><span class="small muted">${t("eligibleNowD", { date: fmtDate(p.app) })}</span>`
+      : p.eligibleOn ? `${t("eligibleOn", { date: `<b>${fmtDate(p.eligibleOn)}</b>` })}<br><span class="small muted">${esc(t("eligibleOnD"))}</span>` : ""}</div>`;
+}
 function renderSeal() {
   const el = $("#seal");
   if (!el) return;
   const list = steps();
   const doneN = list.filter((s) => s.done).length;
-  const deadline = S.data.application?.deadline || S.data.profile.permit.expires;
-  const dayBefore = new Date(Date.parse(deadline + "T12:00:00Z") - 864e5).toISOString().slice(0, 10);
-  const draft = filesIn("formDraft").slice(-1)[0];
   el.innerHTML = `
     <div class="cd">
-      <div class="eyebrow">${esc(t("deadline"))}</div>
-      <div class="cd-num"><b>${faDigits(daysLeft())}</b><span>${esc(t("daysLeft"))}</span></div>
-      <div class="cd-when">${esc(t("submitBy"))} <b>${fmtDate(dayBefore)}</b><br>${esc(t("permitEnds"))} <span class="end">${fmtDate(deadline)}</span></div>
+      ${presenceRailHTML()}
       <div class="form-links">
-        <a class="btn sm" href="imm5710-blank.pdf" download="IMM5710-empty.pdf">${ic("download")}${esc(t("blankForm"))}</a>
-        ${draft ? `<button class="btn sm primary" data-action="download" data-id="${draft.id}">${ic("download")}${esc(t("draftForm"))}</button>` : ""}
-        <p class="small muted">${esc(t("adobeHint"))}</p>
+        <a class="btn sm primary" href="${CIT_PORTAL}" target="_blank" rel="noopener">${ic("send")}${esc(t("openPortal"))}</a>
+        <a class="btn sm" href="${ELIG_PAGE}" target="_blank" rel="noopener">${ic("shield")}${esc(t("eligPage"))}</a>
       </div>
     </div>
     <div class="rail-sep"></div>
@@ -1114,11 +1231,10 @@ function renderTabs() {
   const el = $("#tabs");
   if (!el) return;
   const n = openQuestions(true);
-  const ds = docsStatus();
-  const docsMissing = [!ds.passportPdf, !ds.photo, !ds.form].filter(Boolean).length;
+  const docsMissing = docsMissingN(docsStatus());
   const unread = S.data.notes.filter((x) => x.by === "claude" && !x.seenByYou).length;
   const ck = S.data.checklist;
-  const subLeft = ["adobe", "validate", "ircc", "sign", "paid", "confirm"].filter((k) => !ck[k]).length;
+  const subLeft = ["account", "calc", "fill", "upload", "sign", "paid", "confirm"].filter((k) => !ck[k]).length;
   const tabs = [
     ["overview", t("tabOverview"), ""],
     ["gaps", t("tabGaps"), n ? `<span class="badge">${faDigits(n)}</span>` : `<span class="badge ok">✓</span>`],
@@ -1158,22 +1274,24 @@ function overviewHTML() {
   const list = steps();
   const doneN = list.filter((s) => s.done).length;
   const acts = nextActions();
-  const unit = a.unit || p.address.unit;
-  const unitFlag = !a.unit && p.address.note;
-  const title = (s) => s.charAt(0) + s.slice(1).toLowerCase();
+  const pp = presence();
+  const title = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "");
+  const taxes = (a.taxYears || []).length;
+  const langOpt = groupById("lang").fields[0].options.find(([v]) => v === a.langProof);
+  const dash = `<span class="muted">${esc(t("notYet"))}</span>`;
   return `
   <h2 class="display">${esc(t("ovTitle"))}</h2>
-  <p class="status-line">${t("ovStatus", { days: `<b>${faDigits(daysLeft())}</b>`, done: `<b>${faDigits(doneN)}</b>` })}
+  <p class="status-line">${t("ovStatus", { done: `<b>${faDigits(doneN)}</b>` })}
     ${acts[0] ? ` ${esc(t("ovNextIs"))} <b>${esc(acts[0].t)}</b>.` : ""}</p>
   <div class="card profile">
-    <div class="head"><div><div class="eyebrow">${esc(t("caseTitle"))} · IMM 5710</div>
+    <div class="head"><div><div class="eyebrow">${esc(t("caseTitle"))}</div>
       <div class="name">${esc(title(p.givenName))} ${esc(title(p.familyName))}</div></div>
-      <span class="chip ok">${esc(p.permit.type)}</span></div>
+      <span class="chip ok">${esc(p.status || "")}</span></div>
     <dl>
       <div><dt>${LANG === "fa" ? "تاریخ تولد" : "Date of birth"}</dt><dd>${fmtDate(p.dob)}</dd></div>
-      <div><dt>${LANG === "fa" ? "محل تولد" : "Born in"}</dt><dd>${esc(p.birthPlace)}</dd></div>
-      <div><dt>${LANG === "fa" ? "تابعیت" : "Citizenship"}</dt><dd>${esc(p.citizenship)}</dd></div>
-      <div><dt>${LANG === "fa" ? "وضعیت تأهل" : "Marital status"}</dt><dd>${esc(p.maritalStatus)}</dd></div>
+      <div><dt>${LANG === "fa" ? "محل تولد" : "Born in"}</dt><dd>${esc(a.birthPlace || p.birthPlace || "") || dash}</dd></div>
+      <div><dt>${LANG === "fa" ? "تابعیت" : "Citizenship"}</dt><dd>${esc(p.citizenship || "")}</dd></div>
+      <div><dt>${LANG === "fa" ? "وضعیت تأهل" : "Marital status"}</dt><dd>${esc(a.marital || p.maritalStatus || "")}</dd></div>
     </dl>
   </div>
   ${acts.length ? `<h3 class="section-title display">${esc(t("nextTitle"))}</h3>
@@ -1183,15 +1301,18 @@ function overviewHTML() {
     </button>`).join("")}</div>` : `<p class="okmsg">${esc(t("allDone"))}</p>`}
   <h3 class="section-title display">${esc(t("factsTitle"))}</h3>
   <div class="grid3" style="margin-bottom:26px">
-    <div class="fact"><div class="k">${esc(t("fPermit"))}</div><div class="v">${esc(p.permit.type)}</div><div class="s">${esc(t("issued"))} ${fmtDate(p.permit.issued)} · ${esc(t("expires"))} ${fmtDate(p.permit.expires)}</div></div>
-    <div class="fact"><div class="k">${esc(t("fPassport"))}</div><div class="v">${esc(p.passport.country)}</div><div class="s">${esc(t("validTo"))} ${fmtDate(p.passport.expires)}</div></div>
-    <div class="fact"><div class="k">${esc(t("fBio"))}</div><div class="v">${esc(p.biometrics.given)}</div><div class="s">${esc(t("validTo"))} ${esc(p.biometrics.validUntil)} · ${esc(t(p.biometrics.renew ? "newBio" : "noFee"))}</div></div>
-    <div class="fact ${unitFlag ? "flag" : ""}"><div class="k">${esc(t("fAddress"))}</div><div class="v">${esc(unit)}-${esc(p.address.street)}</div><div class="s">${esc(p.address.city)}, ${esc(p.address.province)} ${esc(p.address.postal)}${unitFlag ? `<br>${esc(t("unitFlag"))}` : ""}</div></div>
-    <div class="fact"><div class="k">${esc(t("fContact"))}</div><div class="v mono" style="font-size:15px">${esc(p.phone)}</div><div class="s" style="overflow-wrap:anywhere">${esc(p.email)}</div></div>
-    <div class="fact"><div class="k">${esc(t("fDaughter"))}</div><div class="v">${esc(p.daughter.name)}</div><div class="s">${esc(p.daughter.status)} · ${fmtDate(p.daughter.dob)}</div></div>
-    <div class="fact"><div class="k">${esc(t("fFees"))}</div><div class="v mono">$${d.application.fees.total} CAD</div><div class="s">$${d.application.fees.workPermit} + $${d.application.fees.openPermitHolder}${d.application.fees.biometrics ? ` + $${d.application.fees.biometrics}` : ""}</div></div>
-    <div class="fact"><div class="k">${esc(t("fDraft"))}</div><div class="v">${esc(d.application.form)}</div><div class="s">${esc(t("draftKept"))} ${fmtDate(d.application.draftDeletedAfter)}</div></div>
-    <div class="fact"><div class="k">${esc(t("policyTitle"))}</div><div class="v">${esc(t("caseTitle"))}</div><div class="s">${esc(t("policyBody"))}</div></div>
+    <div class="fact ${pp && !pp.ok ? "flag" : ""}"><div class="k">${esc(t("presence"))}</div>
+      <div class="v mono">${pp ? `${faDigits(pp.total.toLocaleString("en-CA"))} / ${faDigits("1,095")}` : dash}</div>
+      <div class="s">${pp ? (pp.ok ? esc(t("eligibleNow")) : pp.eligibleOn ? t("eligibleOn", { date: fmtDate(pp.eligibleOn) }) : "") : esc(t("noPrDate"))}</div></div>
+    <div class="fact"><div class="k">${esc(t("fStatus"))}</div><div class="v">${esc(p.status || "")}</div>
+      <div class="s">${a.prDate ? t("prSince", { date: fmtDate(a.prDate) }) : esc(t("notYet"))}</div></div>
+    <div class="fact ${taxes && taxes < 3 ? "flag" : ""}"><div class="k">${esc(t("fTaxes"))}</div><div class="v">${taxes ? esc(t("taxN", { n: faDigits(taxes) })) : dash}</div>
+      <div class="s">${esc(t("taxNeed"))}</div></div>
+    <div class="fact ${a.langProof === "none" ? "flag" : ""}"><div class="k">${esc(t("fLang"))}</div><div class="v">${langOpt ? esc(L(langOpt[1])) : dash}</div>
+      <div class="s" dir="auto">${esc(String(a.langDetail || "").slice(0, 90))}</div></div>
+    <div class="fact"><div class="k">${esc(t("fFee"))}</div><div class="v mono">$${d.application?.fees?.total ?? 653} CAD</div><div class="s">${esc(t("feeBody"))}</div></div>
+    <div class="fact"><div class="k">${esc(t("fContact"))}</div><div class="v mono" style="font-size:15px">${esc(a.phone || p.phone || "") || dash}</div><div class="s" style="overflow-wrap:anywhere">${esc(a.email || p.email || "")}</div></div>
+    <div class="fact" style="grid-column:1/-1"><div class="k">${esc(t("reqTitle"))}</div><div class="v">${esc(t("caseTitle"))}</div><div class="s">${esc(t("reqBody"))}</div></div>
   </div>
   <h3 class="section-title display">${esc(t("logTitle"))}</h3>
   <ul class="log">${d.log.slice(0, 8).map((l) => `<li><span class="at">${esc(fmtStamp(l.at))}</span><span>${l.by === "claude" ? "<b>Claude</b> · " : ""}${esc(l.text)}</span></li>`).join("")}</ul>`;
@@ -1231,29 +1352,48 @@ function gapsHTML() {
   </div>`;
 }
 function unsureHTML(g, f) {
-  if (f.optional || f.type === "work") return "";
+  if (f.optional || ROWLESS.has(f.type)) return "";
   const a = g.store === "ids" ? S.data.ids : S.data.answers;
   return `<label class="unsure-tog"><input type="checkbox" id="u-${f.id}" data-unsure="${f.id}" data-store="${g.store || ""}" ${a[f.id + "Unsure"] ? "checked" : ""}>${esc(t("notSure"))}</label>`;
 }
 function hintHTML(f) {
   return f.hint ? `<div class="hint">${ic("alert")}<span>${esc(L(f.hint))}</span></div>` : "";
 }
+function presenceHTML() {
+  const p = presence();
+  if (!p) return `<div class="hint">${ic("alert")}<span>${esc(t("noPrDate"))}</span></div>`;
+  const pct = Math.min(100, (100 * p.total) / NEED_DAYS);
+  const n = (x) => faDigits(Math.floor(x).toLocaleString("en-CA"));
+  return `<div class="pp-card">
+    <div class="pp-top"><b class="mono">${n(p.total)}</b><span class="muted">${esc(t("ofDays", { need: faDigits("1,095") }))}</span><span class="spacer"></span>
+      <span class="chip ${p.ok ? "ok" : "warn"}">${p.ok ? esc(t("eligibleNow")) : p.eligibleOn ? t("eligibleOn", { date: fmtDate(p.eligibleOn) }) : ""}</span></div>
+    <div class="pp-bar ${p.ok ? "ok" : ""}"><i style="width:${pct}%"></i></div>
+    <dl class="pp-dl">
+      <div><dt>${esc(t("prDays"))}</dt><dd class="mono">${n(p.full)}</dd></div>
+      <div><dt>${esc(t("preDays"))}</dt><dd class="mono">${n(p.credit)}</dd></div>
+      <div><dt>${esc(t("awayDays"))}</dt><dd class="mono">${n(p.away)}</dd></div>
+      <div><dt>${esc(t("windowLbl"))}</dt><dd>${fmtDate(p.start)} – ${fmtDate(p.app)}</dd></div>
+    </dl>
+    <p class="small muted" style="margin:8px 0 0">${esc(t("presenceNote"))}</p></div>`;
+}
 function fieldHTML(g, f) {
   const v = getVal(g, f) ?? "";
   const st = g.store || "";
   const lbl = `<label class="qlabel" for="f-${f.id}">${esc(L(f.label))}</label>`;
   switch (f.type) {
+    case "presence":
+      return `<div class="q pp-live">${presenceHTML()}</div>`;
     case "date": {
       const jal = S.jalOpen === f.id;
       return `<div class="q">${lbl}${hintHTML(f)}
         <div class="date-row">
-          <input class="input" type="date" id="f-${f.id}" data-ans="${f.id}" data-store="${st}" value="${esc(v)}" ${f.min === "visa" && (S.data.profile.firstVisa?.issued || S.data.profile.visa?.issued) ? `min="${S.data.profile.firstVisa?.issued || S.data.profile.visa.issued}"` : ""} max="${todayISO()}">
+          <input class="input" type="date" id="f-${f.id}" data-ans="${f.id}" data-store="${st}" value="${esc(v)}" min="1950-01-01" ${f.future ? "" : `max="${todayISO()}"`}>
           <button class="btn sm" data-action="jal-open" data-id="${f.id}" aria-expanded="${jal}">${ic("calendar")}<span lang="fa">${esc(t("jalaliEnter"))}</span></button>
           ${unsureHTML(g, f)}
         </div>
         ${v ? `<div class="jal" id="jal-${f.id}">${esc(jalaliLabel(v))}</div>` : `<div class="jal" id="jal-${f.id}"></div>`}
         ${jal ? `<div class="jal-entry" role="group" aria-label="${esc(t("jalaliEnter"))}">
-          <input class="input mono" id="jy-${f.id}" inputmode="numeric" placeholder="${t("jalaliYear")} ۱۳۴۱" aria-label="${t("jalaliYear")}">
+          <input class="input mono" id="jy-${f.id}" inputmode="numeric" placeholder="${t("jalaliYear")} ۱۴۰۱" aria-label="${t("jalaliYear")}">
           <input class="input mono" id="jm-${f.id}" inputmode="numeric" placeholder="${t("jalaliMonth")}" aria-label="${t("jalaliMonth")}">
           <input class="input mono" id="jd-${f.id}" inputmode="numeric" placeholder="${t("jalaliDay")}" aria-label="${t("jalaliDay")}">
           <button class="btn sm accent" data-action="jal-use" data-id="${f.id}" data-store="${st}">${esc(t("jalaliUse"))}</button>
@@ -1264,10 +1404,8 @@ function fieldHTML(g, f) {
       return `<div class="q">${lbl}${hintHTML(f)}<div class="date-row">
         <input class="input" type="month" id="f-${f.id}" data-ans="${f.id}" data-store="${st}" value="${esc(v)}" placeholder="YYYY-MM" max="${todayISO().slice(0, 7)}">${unsureHTML(g, f)}</div></div>`;
     case "text":
-    case "place":
       return `<div class="q">${lbl}${hintHTML(f)}
-        <input class="input" id="f-${f.id}" data-ans="${f.id}" data-store="${st}" value="${esc(v)}" ${f.type === "place" ? 'list="places"' : ""} autocomplete="off">
-        ${f.type === "place" ? `<datalist id="places">${PLACES.map((x) => `<option value="${esc(x)}">`).join("")}</datalist>` : ""}
+        <input class="input" id="f-${f.id}" data-ans="${f.id}" data-store="${st}" value="${esc(v)}" autocomplete="off">
         <div>${unsureHTML(g, f)}</div></div>`;
     case "textarea":
       return `<div class="q">${lbl}${hintHTML(f)}<textarea class="input" id="f-${f.id}" data-ans="${f.id}" data-store="${st}">${esc(v)}</textarea></div>`;
@@ -1275,6 +1413,17 @@ function fieldHTML(g, f) {
       return `<div class="q">${lbl}${hintHTML(f)}<div class="id-row">
         <input class="input mono" id="f-${f.id}" data-ans="${f.id}" data-store="ids" value="${esc(v)}" autocomplete="off" spellcheck="false" autocapitalize="characters">
         <button class="btn sm" data-action="copy" data-copy="${f.id}">${ic("copy")}${esc(t("copy"))}</button></div><div>${unsureHTML(g, f)}</div></div>`;
+    case "years": {
+      const a = S.data.answers;
+      const sel = Array.isArray(a[f.id]) ? a[f.id] : [];
+      const unsure = !!a[f.id + "Unsure"];
+      return `<div class="q"><div class="qlabel" id="f-${f.id}">${esc(L(f.label))}</div>${hintHTML(f)}
+        <div class="choices" role="group" aria-labelledby="f-${f.id}">
+          ${taxYears().map((y) => `<button data-action="year" data-id="${f.id}" data-val="${y}" aria-pressed="${!unsure && sel.includes(y)}">${faDigits(y)}</button>`).join("")}
+          <button class="unsure" data-action="pick-unsure" data-id="${f.id}" data-store="" aria-pressed="${unsure}">${esc(t("notSure"))}</button>
+        </div>
+        <div class="small ${sel.length && sel.length < 3 ? "" : "muted"}" style="margin-top:6px;${sel.length && sel.length < 3 ? "color:var(--danger)" : ""}">${sel.length ? esc(t("taxN", { n: faDigits(sel.length) })) + " · " : ""}${esc(t("taxNeed"))}</div></div>`;
+    }
     case "choice":
     case YN: {
       const opts = f.type === YN ? [["yes", { en: t("yes"), fa: "بله" }], ["no", { en: t("no"), fa: "خیر" }]]
@@ -1289,8 +1438,10 @@ function fieldHTML(g, f) {
         ${f.details && v === "yes" ? `<textarea class="input" id="f-${f.id}Detail" data-ans="${f.id}Detail" data-store="${st}" placeholder="${esc(t("details"))}">${esc(a[f.id + "Detail"] || "")}</textarea>` : ""}
       </div>`;
     }
-    case "work":
-      return workHTML();
+    case "timeline":
+      return timelineHTML(f.id);
+    case "list":
+      return `<div class="q"><div class="qlabel">${esc(L(f.label))}</div>${daysHTML(f.id)}</div>`;
     default:
       return "";
   }
@@ -1313,10 +1464,11 @@ function workOrder(rows) {
   const end = (r) => (r.present ? "9999-99" : r.to || "");
   return rows.map((r, k) => k).sort((x, y) => String(rows[y].from || "").localeCompare(String(rows[x].from || "")) || end(rows[y]).localeCompare(end(rows[x])) || x - y);
 }
-function coverageHTML() {
-  const w = workStatus();
+const rowLabel = (list, r, k) => r[LISTS[list].label] || `${t(LISTS[list].label)} ${faDigits(k + 1)}`;
+function coverageHTML(list) {
+  const w = timelineStatus(list);
   const n = w.covered.length;
-  const rows = S.data.answers.workRows || [];
+  const rows = S.data.answers[list] || [];
   const cols = rowColors(rows);
   const span = (a, b) => `left:${(100 * a) / n}%;width:${(100 * (b - a + 1)) / n}%`;
   let gaps = "", i = 0;
@@ -1328,81 +1480,104 @@ function coverageHTML() {
     const r = rows[k];
     const a = monthIndex(r.from), b = r.present ? w.end : monthIndex(r.to);
     const lo = a == null ? null : Math.max(a, w.start) - w.start, hi = b == null ? null : Math.min(b, w.end) - w.start;
-    const tip = `${r.activity || t("activity")} · ${r.from || "?"} – ${r.present ? t("present") : r.to || "?"}`;
-    return `<div class="lane wc${cols[k]}">${lo != null && hi != null && hi >= lo ? `<button class="seg" style="${span(lo, hi)}" data-action="work-sheet" data-row="${k}" title="${esc(tip)}" aria-label="${esc(tip)}"></button>` : ""}</div>`;
+    const tip = `${rowLabel(list, r, k)} · ${r.from || "?"} – ${r.present ? t("present") : r.to || "?"}`;
+    return `<div class="lane wc${cols[k]}">${lo != null && hi != null && hi >= lo ? `<button class="seg" style="${span(lo, hi)}" data-action="row-sheet" data-list="${list}" data-row="${k}" title="${esc(tip)}" aria-label="${esc(tip)}"></button>` : ""}</div>`;
   }).join("") || `<div class="lane"></div>`;
-  const legend = order.map((k) => `<li class="wc${cols[k]}"><button data-action="work-sheet" data-row="${k}"><span class="sw"></span>${esc(rows[k].activity || `${t("activity")} ${faDigits(k + 1)}`)}</button></li>`).join("");
+  const legend = order.map((k) => `<li class="wc${cols[k]}"><button data-action="row-sheet" data-list="${list}" data-row="${k}"><span class="sw"></span>${esc(rowLabel(list, rows[k], k))}</button></li>`).join("");
   return `<div class="coverage"><div class="eyebrow" style="margin-bottom:6px">${esc(t("coverage"))}</div>
     <div class="bar">${lanes}${gaps}</div><div class="lbls"><span>${ymFromIndex(w.start)}</span><span>${ymFromIndex(w.end)}</span></div>
     ${legend ? `<ul class="cov-legend">${legend}</ul>` : ""}
     <div class="small" style="margin-top:6px;color:${w.gaps.length ? "var(--danger)" : "var(--accent)"}">${w.gaps.length ? w.gaps.slice(0, 3).map(([a, b]) => esc(t("gapFound", { from: a, to: b }))).join("<br>") : esc(t("noGaps"))}</div></div>`;
 }
 // Bottom sheet for one period, opened from its line in the coverage bar. Its inputs carry the
-// same data-row/data-col as the list, so the usual input handlers save them.
+// same data-list/data-row/data-col as the list, so the usual input handlers save them.
 function workWhen(r) {
   const a = monthIndex(r.from), now = new Date();
   const b = r.present ? now.getUTCFullYear() * 12 + now.getUTCMonth() : monthIndex(r.to);
   const n = a != null && b != null && b >= a ? b - a + 1 : 0;
   return `${r.from || "?"} – ${r.present ? t("present") : r.to || "?"}${n ? ` · ${t("months", { n: faDigits(n) })}` : ""}`;
 }
-function sheetHeadHTML(i) {
-  const r = S.data.answers.workRows[i];
-  return `<span class="sw"></span><div class="grow"><h3 id="ws-title">${esc(r.activity || t("activity"))}</h3><div class="small muted">${esc(workWhen(r))}</div></div>
+function sheetHeadHTML(list, i) {
+  const r = S.data.answers[list][i];
+  return `<span class="sw"></span><div class="grow"><h3 id="ws-title">${esc(rowLabel(list, r, i))}</h3><div class="small muted">${esc(workWhen(r))}</div></div>
     <button class="iconbtn" data-action="modal-close" aria-label="${esc(t("close"))}">${ic("x")}</button>`;
 }
-function openWorkSheet(i, still = false) {
-  const rows = S.data.answers.workRows;
+function openSheet(list, i, still = false) {
+  const rows = S.data.answers[list];
   const r = rows[i];
   if (!r) return;
   const c = rowColors(rows)[i];
   const max = todayISO().slice(0, 7);
-  const field = (col, extra = "", cls = "") => `<div class="${cls}"><label for="ws-${col}">${esc(t(col))}</label><input class="input" id="ws-${col}" data-row="${i}" data-col="${col}" value="${esc(r[col] || "")}" ${extra}></div>`;
+  const attrs = (col) => `id="ws-${col}" data-list="${list}" data-row="${i}" data-col="${col}"`;
+  const field = (col, cls = "") => `<div class="${cls}"><label for="ws-${col}">${esc(t(col))}</label><input class="input" ${attrs(col)} value="${esc(r[col] || "")}"></div>`;
   $("#modal-root").innerHTML = `<div class="sheet-back ${still ? "still" : ""}" data-action="modal-close">
-    <div class="sheet wc${c} ${still ? "still" : ""}" id="work-sheet" role="dialog" aria-modal="true" aria-labelledby="ws-title" tabindex="-1" data-stop>
+    <div class="sheet wc${c} ${still ? "still" : ""}" id="row-sheet" role="dialog" aria-modal="true" aria-labelledby="ws-title" tabindex="-1" data-stop>
       <div class="sheet-grab" aria-hidden="true"></div>
-      <div class="sheet-head" id="ws-head">${sheetHeadHTML(i)}</div>
+      <div class="sheet-head" id="ws-head">${sheetHeadHTML(list, i)}</div>
       <div class="sheet-body">
-        ${field("from", `type="month" min="1950-01" max="${max}"`)}
-        <div><label for="ws-to">${esc(t("to"))}</label><input class="input" type="month" id="ws-to" data-row="${i}" data-col="to" value="${esc(r.to || "")}" ${r.present ? "disabled" : ""} max="${max}">
-          <label class="present"><input type="checkbox" id="ws-present" data-row="${i}" data-col="present" ${r.present ? "checked" : ""}>${esc(t("present"))}</label></div>
-        ${field("activity", "", "full")}
-        ${field("employer")}${field("city")}${field("country")}
+        <div><label for="ws-from">${esc(t("from"))}</label><input class="input" type="month" ${attrs("from")} value="${esc(r.from || "")}" min="1950-01" max="${max}"></div>
+        <div><label for="ws-to">${esc(t("to"))}</label><input class="input" type="month" ${attrs("to")} value="${esc(r.to || "")}" ${r.present ? "disabled" : ""} max="${max}">
+          <label class="present"><input type="checkbox" id="ws-present" data-list="${list}" data-row="${i}" data-col="present" ${r.present ? "checked" : ""}>${esc(t("present"))}</label></div>
+        ${LISTS[list].cols.map(([col, cls]) => field(col, cls || "")).join("")}
       </div>
       <div class="sheet-foot">
-        <button class="btn danger" data-action="work-sheet-rm" data-row="${i}">${ic("trash")}${esc(t("remove"))}</button>
+        <button class="btn danger" data-action="row-sheet-rm" data-list="${list}" data-row="${i}">${ic("trash")}${esc(t("remove"))}</button>
         <button class="btn accent" data-action="modal-close">${esc(t("done"))}</button>
       </div>
     </div></div>`;
-  if (!still) $("#work-sheet").focus();
+  if (!still) $("#row-sheet").focus();
 }
 function closeModal() {
   const root = $("#modal-root");
-  const wasSheet = !!root?.querySelector("#work-sheet");
+  const wasSheet = !!root?.querySelector("#row-sheet");
   if (root) root.innerHTML = "";
   S.armed = null;
   if (wasSheet) renderPanel(); // the list behind it still shows the values from before the edit
 }
-function workHTML() {
-  const rows = S.data.answers.workRows;
+function timelineHTML(list) {
+  const cfg = LISTS[list];
+  const rows = S.data.answers[list];
   const cols = rowColors(rows);
-  const quick =[["Homemaker", "خانه‌دار"], ["Retired", "بازنشسته"], ["Unemployed", "بیکار"], ["Visiting family in Canada", "دیدار خانواده در کانادا"]];
+  const max = todayISO().slice(0, 7);
+  const attrs = (i, col) => `id="${list}-${i}-${col}" data-list="${list}" data-row="${i}" data-col="${col}"`;
   return `<div class="q">
-    <div id="work-cov">${coverageHTML()}</div>
-    <div class="stack" style="gap:10px">${workOrder(rows).map((i) => [rows[i], i]).map(([r, i]) => `
+    <div data-cov="${list}">${coverageHTML(list)}</div>
+    <div class="stack" style="gap:10px">${workOrder(rows).map((i) => { const r = rows[i]; return `
       <div class="work-row wc${cols[i]}">
-        <div><label for="w-${i}-from">${esc(t("from"))}</label><input class="input" type="month" id="w-${i}-from" data-row="${i}" data-col="from" value="${esc(r.from || "")}" min="1950-01" max="${todayISO().slice(0, 7)}"></div>
-        <div><label for="w-${i}-to">${esc(t("to"))}</label><input class="input" type="month" id="w-${i}-to" data-row="${i}" data-col="to" value="${esc(r.to || "")}" ${r.present ? "disabled" : ""} max="${todayISO().slice(0, 7)}">
-          <label class="present"><input type="checkbox" id="w-${i}-present" data-row="${i}" data-col="present" ${r.present ? "checked" : ""}>${esc(t("present"))}</label></div>
-        <div><label for="w-${i}-activity">${esc(t("activity"))}</label><input class="input" id="w-${i}-activity" data-row="${i}" data-col="activity" value="${esc(r.activity || "")}"></div>
-        <div><label for="w-${i}-employer">${esc(t("employer"))}</label><input class="input" id="w-${i}-employer" data-row="${i}" data-col="employer" value="${esc(r.employer || "")}"></div>
-        <div><label for="w-${i}-city">${esc(t("city"))}</label><input class="input" id="w-${i}-city" data-row="${i}" data-col="city" value="${esc(r.city || "")}"></div>
-        <div><label for="w-${i}-country">${esc(t("country"))}</label><input class="input" id="w-${i}-country" data-row="${i}" data-col="country" value="${esc(r.country || "")}"></div>
-        <button class="iconbtn rm" data-action="work-rm" data-row="${i}" aria-label="${esc(t("remove"))}">${ic("trash")}</button>
-      </div>`).join("")}</div>
+        <div><label for="${list}-${i}-from">${esc(t("from"))}</label><input class="input" type="month" ${attrs(i, "from")} value="${esc(r.from || "")}" min="1950-01" max="${max}"></div>
+        <div><label for="${list}-${i}-to">${esc(t("to"))}</label><input class="input" type="month" ${attrs(i, "to")} value="${esc(r.to || "")}" ${r.present ? "disabled" : ""} max="${max}">
+          <label class="present"><input type="checkbox" id="${list}-${i}-present" data-list="${list}" data-row="${i}" data-col="present" ${r.present ? "checked" : ""}>${esc(t("present"))}</label></div>
+        ${cfg.cols.map(([col]) => `<div><label for="${list}-${i}-${col}">${esc(t(col))}</label><input class="input" ${attrs(i, col)} value="${esc(r[col] || "")}"></div>`).join("")}
+        <button class="iconbtn rm" data-action="row-rm" data-list="${list}" data-row="${i}" aria-label="${esc(t("remove"))}">${ic("trash")}</button>
+      </div>`; }).join("")}</div>
     <div class="row" style="margin-top:6px">
-      <button class="btn" data-action="work-add">${ic("plus")}${esc(t("addRow"))}</button>
-      <div class="qs-chips">${quick.map(([en, fa]) => `<button data-action="work-quick" data-val="${esc(en)}">+ ${esc(LANG === "fa" ? fa : en)}</button>`).join("")}</div>
+      <button class="btn" data-action="row-add" data-list="${list}">${ic("plus")}${esc(t(cfg.add))}</button>
+      ${cfg.quick ? `<div class="qs-chips">${cfg.quick.map(([en, fa]) => `<button data-action="row-quick" data-list="${list}" data-val="${esc(en)}">+ ${esc(LANG === "fa" ? fa : en)}</button>`).join("")}</div>` : ""}
     </div></div>`;
+}
+// Exact-date rows: trips outside Canada, and time in Canada before PR.
+function daysHTML(list) {
+  const cfg = LISTS[list];
+  const rows = S.data.answers[list];
+  const none = list === "trips" && S.data.answers.noTrips;
+  const order = rows.map((r, k) => k).sort((x, y) => String(rows[y][cfg.a] || "").localeCompare(String(rows[x][cfg.a] || "")) || x - y);
+  const total = rows.reduce((s, r) => { const n = rowDays(list, r); return s + (n > 0 ? n : 0); }, 0);
+  const attrs = (i, col) => `id="${list}-${i}-${col}" data-list="${list}" data-row="${i}" data-col="${col}"`;
+  const max = cfg.away ? "" : `max="${todayISO()}"`;
+  const cell = (i, r, [col, opts]) => opts
+    ? `<div><label for="${list}-${i}-${col}">${esc(t(col))}</label><select class="input" ${attrs(i, col)}><option value=""></option>${opts.map(([v, lb]) => `<option value="${esc(v)}" ${r[col] === v ? "selected" : ""}>${esc(L(lb))}</option>`).join("")}</select></div>`
+    : `<div><label for="${list}-${i}-${col}">${esc(t(col))}</label><input class="input" ${attrs(i, col)} value="${esc(r[col] || "")}"></div>`;
+  return `${list === "trips" ? `<label class="present none-tog"><input type="checkbox" data-flag="noTrips" ${none ? "checked" : ""}>${esc(t("noTripsLbl"))}</label>` : ""}
+    ${none ? "" : `<div class="stack" style="gap:10px;margin-top:8px">${order.map((i) => { const r = rows[i]; const n = rowDays(list, r); return `
+      <div class="work-row day-row ${list}">
+        <div><label for="${list}-${i}-${cfg.a}">${esc(t(cfg.a))}</label><input class="input" type="date" ${attrs(i, cfg.a)} value="${esc(r[cfg.a] || "")}" min="1990-01-01" ${max}></div>
+        <div><label for="${list}-${i}-${cfg.b}">${esc(t(cfg.b))}</label><input class="input" type="date" ${attrs(i, cfg.b)} value="${esc(r[cfg.b] || "")}" min="1990-01-01" ${max}></div>
+        ${cfg.cols.map((c) => cell(i, r, c)).join("")}
+        <div class="days ${n === -1 ? "bad" : ""}">${n == null ? "" : n === -1 ? esc(t("rowBad")) : esc(cfg.away ? t("awayN", { n: faDigits(n) }) : t("daysN", { n: faDigits(n) }))}</div>
+        <button class="iconbtn rm" data-action="row-rm" data-list="${list}" data-row="${i}" aria-label="${esc(t("remove"))}">${ic("trash")}</button>
+      </div>`; }).join("")}</div>
+    <div class="row" style="margin-top:6px"><button class="btn" data-action="row-add" data-list="${list}">${ic("plus")}${esc(t(cfg.add))}</button>
+      ${total ? `<span class="small muted">${esc(cfg.away ? t("awayN", { n: faDigits(total) }) : t("daysN", { n: faDigits(total) }))}</span>` : ""}</div>`}`;
 }
 
 /* ---------------- documents ---------------- */
@@ -1488,7 +1663,7 @@ function submitHTML() {
   const ck = S.data.checklist;
   const ds = docsStatus();
   const items = [
-    ["adobe"], ["validate"], ["form", ds.form], ["passport", ds.passportPdf], ["photo", ds.photo], ["ircc"], ["sign"], ["paid"], ["confirm"], ["bio"],
+    ["account"], ["calc"], ["fill"], ["prCard", ds.prCard], ["passport", ds.passportPdf], ["lang", ds.language], ["upload"], ["sign"], ["paid"], ["confirm"], ["test"], ["oath"],
   ];
   return `<h2 class="display">${esc(t("submitTitle"))}</h2><p class="lede">${esc(t("submitLede"))}</p>
   <div class="split">
@@ -1500,8 +1675,8 @@ function submitHTML() {
         <span><div class="t">${esc(t("ck_" + k))} ${isAuto ? `<span class="chip plain small">${esc(t("auto"))}</span>` : ""}</div><div class="d">${esc(t("ck_" + k + "D"))}</div></span></label>`;
     }).join("")}
       <div class="row" style="margin-top:8px">
-        <a class="btn primary" href="${IRCC_SIGNIN}" target="_blank" rel="noopener">${esc(t("openIrcc"))}</a>
-        <a class="btn" href="${IRAN_PAGE}" target="_blank" rel="noopener">${esc(t("policyPage"))}</a>
+        <a class="btn primary" href="${CIT_PORTAL}" target="_blank" rel="noopener">${esc(t("openPortal"))}</a>
+        <a class="btn" href="${APPLY_PAGE}" target="_blank" rel="noopener">${esc(t("eligPage"))}</a>
       </div>
     </div>
     <div class="stack">
@@ -1551,7 +1726,7 @@ async function viewFile(id) {
   if (!rec) return;
   const root = $("#modal-root");
   const isImg = rec.type.startsWith("image/");
-  const isXfa = rec.slot === "formDraft" || rec.slot === "imm5710";
+  const isXfa = false;
   root.innerHTML = `<div class="modal-back" data-action="modal-close"><div class="card modal" role="dialog" aria-modal="true" aria-label="${esc(rec.name)}" data-stop>
     <div class="modal-head"><span class="ttl">${esc(rec.name)} <span class="muted small">· ${fmtSize(rec.size)} · ${esc(fmtStamp(rec.addedAt))}</span></span>
       <button class="btn sm" data-action="download" data-id="${rec.id}">${ic("download")}${esc(t("download"))}</button>
@@ -1830,8 +2005,7 @@ const actions = {
   step(el) {
     const s = steps()[Number(el.dataset.step)];
     S.tab = s.tab; if (s.group) S.group = s.group;
-    else if (s.key === "answers") S.group = GROUPS.find((g) => g.id !== "ids" && !groupStatus(g).complete)?.id || S.group;
-    renderTabs(); renderPanel(); $("#panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        renderTabs(); renderPanel(); $("#panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
   },
   group(el) { S.group = el.dataset.group; S.jalOpen = null; renderPanel(); $("#panel")?.scrollIntoView({ behavior: "smooth", block: "start" }); },
   pick(el) {
@@ -1856,26 +2030,37 @@ const actions = {
     const done = () => { el.innerHTML = ic("check") + esc(t("copied")); setTimeout(() => (el.innerHTML = ic("copy") + esc(t("copy"))), 1600); };
     navigator.clipboard?.writeText(v).then(done, () => { const i = $(`#f-${el.dataset.copy}`); i?.select(); });
   },
-  "work-add"() { mutate((d) => d.answers.workRows.push({ from: "", to: "", present: false, activity: "", employer: "", city: "", country: "" })); },
-  "work-quick"(el) {
+  "row-add"(el) {
+    const list = el.dataset.list, cfg = LISTS[list];
+    const blank = cfg.kind === "timeline" ? { from: "", to: "", present: false } : { [cfg.a]: "", [cfg.b]: "" };
+    for (const [c] of cfg.cols) blank[c] = "";
+    mutate((d) => d.answers[list].push(blank));
+  },
+  "row-quick"(el) {
+    const list = el.dataset.list;
     mutate((d) => {
-      const rows = d.answers.workRows;
+      const rows = d.answers[list];
       const last = [...rows].sort((a, b) => String(b.to || "9999").localeCompare(String(a.to || "9999")))[0];
       const from = last && last.to && !last.present ? ymFromIndex(monthIndex(last.to) + 1) : rows.length ? "" : ymFromIndex(workWindowStart());
-      const inCanada = /Canada/.test(el.dataset.val);
-      const city = inCanada ? S.data.profile.address.city : (S.data.profile.birthPlace || "").split(",")[0];
-      const country = inCanada ? "Canada" : S.data.profile.citizenship;
-      rows.push({ from, to: "", present: false, activity: el.dataset.val, employer: "", city, country });
+      rows.push({ from, to: "", present: false, activity: el.dataset.val, employer: "", city: S.data.profile.city || "", country: "Canada" });
     });
   },
-  "work-rm"(el) { mutate((d) => d.answers.workRows.splice(Number(el.dataset.row), 1)); },
-  "work-sheet"(el) { S.armed = null; openWorkSheet(Number(el.dataset.row)); },
-  "work-sheet-rm"(el) {
-    const i = Number(el.dataset.row);
-    if (S.armed !== "w" + i) { S.armed = "w" + i; el.classList.add("armed"); el.textContent = t("confirmRemove"); return; }
+  "row-rm"(el) { mutate((d) => d.answers[el.dataset.list].splice(Number(el.dataset.row), 1)); },
+  "row-sheet"(el) { S.armed = null; openSheet(el.dataset.list, Number(el.dataset.row)); },
+  "row-sheet-rm"(el) {
+    const i = Number(el.dataset.row), list = el.dataset.list;
+    if (S.armed !== "w" + list + i) { S.armed = "w" + list + i; el.classList.add("armed"); el.textContent = t("confirmRemove"); return; }
     S.armed = null;
     $("#modal-root").innerHTML = "";
-    mutate((d) => d.answers.workRows.splice(i, 1));
+    mutate((d) => d.answers[list].splice(i, 1));
+  },
+  year(el) {
+    const { id, val } = el.dataset;
+    mutate((d) => {
+      const cur = Array.isArray(d.answers[id]) ? d.answers[id] : [];
+      d.answers[id] = cur.includes(val) ? cur.filter((y) => y !== val) : [...cur, val].sort();
+      delete d.answers[id + "Unsure"];
+    });
   },
   "pick-file"(el) { $(`#in-${el.dataset.slot}`)?.click(); },
   "pick-camera"(el) { $(`#cam-${el.dataset.slot}`)?.click(); },
@@ -1922,21 +2107,23 @@ document.addEventListener("input", (ev) => {
   if (el.dataset.ans) {
     setAnswer(el.dataset.ans, el.value, el.dataset.store, { render: false });
     if (el.type === "date") { const j = $(`#jal-${el.dataset.ans}`); if (j) j.textContent = jalaliLabel(el.value); }
-  } else if (el.dataset.row != null && el.dataset.col && el.type !== "checkbox") {
-    const i = Number(el.dataset.row), c = el.dataset.col;
-    mutate((d) => { d.answers.workRows[i][c] = el.value; }, { render: false });
+  } else if (el.dataset.list && el.dataset.row != null && el.dataset.col && el.type !== "checkbox") {
+    const list = el.dataset.list, i = Number(el.dataset.row), c = el.dataset.col;
+    mutate((d) => { d.answers[list][i][c] = el.value; }, { render: false });
     const head = $("#ws-head");
-    if (head && el.closest("#work-sheet")) head.innerHTML = sheetHeadHTML(i);
+    if (head && el.closest("#row-sheet")) head.innerHTML = sheetHeadHTML(list, i);
   }
 });
 document.addEventListener("change", (ev) => {
   const el = ev.target;
   if (el.dataset.unsure) {
     mutate((d) => { const tgt = el.dataset.store === "ids" ? d.ids : d.answers; tgt[el.dataset.unsure + "Unsure"] = el.checked; }, { render: false });
-  } else if (el.dataset.col === "present") {
-    const i = Number(el.dataset.row);
-    mutate((d) => { d.answers.workRows[i].present = el.checked; });
-    if (el.closest("#work-sheet")) openWorkSheet(i, true);
+  } else if (el.dataset.flag) {
+    mutate((d) => { d.answers[el.dataset.flag] = el.checked; });
+  } else if (el.dataset.list && el.dataset.col === "present") {
+    const list = el.dataset.list, i = Number(el.dataset.row);
+    mutate((d) => { d.answers[list][i].present = el.checked; });
+    if (el.closest("#row-sheet")) openSheet(list, i, true);
   } else if (el.dataset.check) {
     mutate((d) => { d.checklist[el.dataset.check] = el.checked; }, { log: `${el.checked ? "Ticked" : "Unticked"}: ${T.en["ck_" + el.dataset.check]}` });
   } else if (el.dataset.upload && el.files?.length) {
@@ -1946,7 +2133,9 @@ document.addEventListener("change", (ev) => {
     importFromClaude(el.files[0]);
     el.value = "";
   } else if (el.dataset.ans && (el.type === "date" || el.type === "month")) {
-    renderPanel();
+    renderPanel(); renderSeal();
+  } else if (el.dataset.list && LISTS[el.dataset.list]?.kind === "days" && (el.type === "date" || el.tagName === "SELECT")) {
+    renderPanel(); renderSeal();
   }
 });
 // drag & drop onto document slots
@@ -2023,7 +2212,7 @@ setInterval(() => { if (S.data) renderSeal(); }, 60 * 60 * 1000);
   try {
     S.vault = await loadVault();
   } catch {
-    app().innerHTML = `<div class="gate"><div class="card gate-card"><h1 class="display">Nasrin</h1><p class="sub">${esc(t("noVault"))}</p></div></div>`;
+    app().innerHTML = `<div class="gate"><div class="card gate-card"><h1 class="display">${esc(t("brand"))}</h1><p class="sub">${esc(t("noVault"))}</p></div></div>`;
     return;
   }
   let msg = "";
